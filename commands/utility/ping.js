@@ -5,7 +5,10 @@ module.exports = {
         .setName('ping')
         .setDescription('pong'),
     async execute(interaction) { // Command functionality
-        const sent = await interaction.reply({ content: ':ping_pong: Ping...', flags: MessageFlags.Ephemeral })
-        interaction.editReply(`:ping_pong: Pong!\nRoundtrip latency: ${sent.createdTimestamp - interaction.createdTimestamp}ms`);
+        const start = Date.now();
+        await interaction.reply({ content: ':ping_pong: Ping...', flags: MessageFlags.Ephemeral });
+        const end = Date.now();
+
+        await interaction.editReply(`:ping_pong: Pong!\n\nRoundtrip Latency: ${end - start}ms\nWebSocket Heartbeat: ${interaction.client.ws.ping}ms`);
     },
 };
