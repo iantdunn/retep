@@ -6,7 +6,6 @@ module.exports = {
 
     reactionSettings: {
         channelId: '1381413895083921449', // retep-training
-        logToConsole: true,
         excludeAuthorReactions: true
     },
 

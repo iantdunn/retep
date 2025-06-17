@@ -9,8 +9,6 @@ module.exports = {
             return;
         }
 
-        console.log(`here`)
-
         // Get the goodbye channel
         const channel = member.guild.channels.cache.get(config.welcomeSettings.channelId);
         if (!channel) {

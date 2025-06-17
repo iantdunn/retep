@@ -75,28 +75,27 @@ class ReactionTracker {
             const totalReactions = message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
             const validReactions = this.getValidReactions(message);
             const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
-            const validReactionsExcludingAuthor = await this.getValidReactionsExcludingAuthor(message);            // Log the statistics
-            if (config.reactionSettings.logToConsole) {
-                console.log(`\n=== Message Reaction Update ===`);
-                console.log(`Action: ${action}`);
-                console.log(`Message ID: ${message.id}`);
-                console.log(`Message Author: ${message.author.tag} (${message.author.id})`);
-                console.log(`User who reacted: ${user.tag} (${user.id})`);
-                console.log(`Reaction: ${reaction.emoji}`);
-                console.log(`Total reactions: ${totalReactions}`);
-                console.log(`Total valid reactions: ${totalValidReactions}`);
-                console.log(`Valid reactions (excluding author): ${validReactionsExcludingAuthor}`);
+            const validReactionsExcludingAuthor = await this.getValidReactionsExcludingAuthor(message)
 
-                // Log breakdown of valid reactions
-                if (validReactions.length > 0) {
-                    console.log(`Valid reactions breakdown:`);
-                    validReactions.forEach(r => {
-                        console.log(`  ${r.emoji}: ${r.count}`);
-                    });
-                }
+            console.log(`\n=== Message Reaction Update ===`);
+            console.log(`Action: ${action}`);
+            console.log(`Message ID: ${message.id}`);
+            console.log(`Message Author: ${message.author.tag} (${message.author.id})`);
+            console.log(`User who reacted: ${user.tag} (${user.id})`);
+            console.log(`Reaction: ${reaction.emoji}`);
+            console.log(`Total reactions: ${totalReactions}`);
+            console.log(`Total valid reactions: ${totalValidReactions}`);
+            console.log(`Valid reactions (excluding author): ${validReactionsExcludingAuthor}`);
 
-                console.log(`===============================\n`);
+            // Log breakdown of valid reactions
+            if (validReactions.length > 0) {
+                console.log(`Valid reactions breakdown:`);
+                validReactions.forEach(r => {
+                    console.log(`  ${r.emoji}: ${r.count}`);
+                });
             }
+
+            console.log(`===============================\n`);
         } catch (error) {
             console.error('Error processing reaction update:', error);
         }
