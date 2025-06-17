@@ -1,16 +1,18 @@
 module.exports = {
-    // Valid reactions configuration
     validReactions: [
         '👍', '👎', '❤️', '😂', '😮', '😢', '😡',
         '⭐', '🔥', '💯', '✅', '❌', '🎉', '👏'
     ],
 
-    // Reaction tracking settings
     reactionSettings: {
-        // Whether to log reaction updates to console
+        channelId: '1381413895083921449', // retep-training
         logToConsole: true,
-
-        // Whether to prevent self-reactions from counting
         excludeAuthorReactions: true
+    },
+
+    welcomeSettings: {
+        channelId: '1305933207551868981', // hello-goodbye
+        welcomeEnabled: true,
+        goodbyeEnabled: true
     }
 };
