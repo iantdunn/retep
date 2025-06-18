@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
-const { ReactionTracker } = require('../../utils/reactionTracker');
+const { ReactionManager } = require('../../utils/reactionManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -52,9 +52,9 @@ async function handleStats(interaction) {
 
         // Calculate statistics
         const totalReactions = message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
-        const validReactions = ReactionTracker.getValidReactions(message);
+        const validReactions = ReactionManager.getValidReactions(message);
         const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
-        const validReactionsExcludingAuthor = await ReactionTracker.getValidReactionsExcludingAuthor(message);
+        const validReactionsExcludingAuthor = await ReactionManager.getValidReactionsExcludingAuthor(message);
 
         // Create embed
         const embed = new EmbedBuilder()
@@ -89,7 +89,7 @@ async function handleStats(interaction) {
 }
 
 async function handleValidList(interaction) {
-    const validReactions = ReactionTracker.getValidReactionsList();
+    const validReactions = ReactionManager.getValidReactionsList();
 
     const embed = new EmbedBuilder()
         .setColor(0x57F287)
