@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const config = require('../config');
+const { validReactions, reactionRoleSettings } = require('../config');
 const fs = require('fs');
 const path = require('path');
 
@@ -20,25 +20,23 @@ class ReactionManager {
      */
     static async initializeReactionRoles(client) {
         try {
-            const settings = config.reactionRoleSettings;
-
-            if (!settings.enabled) {
+            if (!reactionRoleSettings.enabled) {
                 console.log('Reaction roles are disabled in config');
                 return;
             }
 
-            if (Object.keys(settings.roleEmojis).length === 0) {
+            if (Object.keys(reactionRoleSettings.roleEmojis).length === 0) {
                 console.log('No reaction role mappings configured');
                 return;
             }
 
-            const channel = await client.channels.fetch(settings.channelId);
+            const channel = await client.channels.fetch(reactionRoleSettings.channelId);
             if (!channel) {
-                console.error(`Cannot find channel with ID: ${settings.channelId}`);
+                console.error(`Cannot find channel with ID: ${reactionRoleSettings.channelId}`);
                 return;
             }
 
-            let message = await this.getOrCreateReactionRoleMessage(channel, settings);
+            let message = await this.getOrCreateReactionRoleMessage(channel);
             if (message) {
                 await this.manageReactions(message);
             }
@@ -51,21 +49,20 @@ class ReactionManager {
     /**
      * Get existing reaction role message or create a new one
      * @param {TextChannel} channel - Discord channel
-     * @param {Object} settings - Reaction role settings
      * @returns {Message|null} - The reaction role message
      */
-    static async getOrCreateReactionRoleMessage(channel, settings) {
+    static async getOrCreateReactionRoleMessage(channel) {
         let message = null;
 
         // Try to fetch existing message
-        if (settings.messageId) {
+        if (reactionRoleSettings.messageId) {
             try {
-                message = await channel.messages.fetch(settings.messageId);
-                console.log(`Found existing reaction role message: ${settings.messageId}`);
+                message = await channel.messages.fetch(reactionRoleSettings.messageId);
+                console.log(`Found existing reaction role message: ${reactionRoleSettings.messageId}`);
                 return message;
             } catch (error) {
-                console.log(`Could not fetch message with ID ${settings.messageId}, will create new one`);
-                settings.messageId = null;
+                console.log(`Could not fetch message with ID ${reactionRoleSettings.messageId}, will create new one`);
+                reactionRoleSettings.messageId = null;
                 this.updateConfigFile();
             }
         }
@@ -73,7 +70,7 @@ class ReactionManager {
         // Create new message if none exists
         message = await this.createReactionRoleMessage(channel);
         if (message) {
-            settings.messageId = message.id;
+            reactionRoleSettings.messageId = message.id;
             this.updateConfigFile();
             console.log(`Created new reaction role message: ${message.id}`);
         }
@@ -124,14 +121,12 @@ class ReactionManager {
      */
     static async handleReactionRoleAction(reaction, user, action) {
         try {
-            const settings = config.reactionRoleSettings;
-
-            if (!settings.enabled || reaction.message.id !== settings.messageId || user.bot) {
-                return settings.enabled && reaction.message.id === settings.messageId && user.bot;
+            if (!reactionRoleSettings.enabled || reaction.message.id !== reactionRoleSettings.messageId || user.bot) {
+                return reactionRoleSettings.enabled && reaction.message.id === reactionRoleSettings.messageId && user.bot;
             }
 
             const emoji = reaction.emoji.toString();
-            const roleId = settings.roleEmojis[emoji];
+            const roleId = reactionRoleSettings.roleEmojis[emoji];
 
             if (!roleId) {
                 console.log(`No role mapping found for emoji: ${emoji}`);
@@ -179,8 +174,6 @@ class ReactionManager {
      */
     static async createReactionRoleMessage(channel) {
         try {
-            const settings = config.reactionRoleSettings;
-
             const embed = new EmbedBuilder()
                 .setTitle('Reaction Roles')
                 .setDescription('React to this message to give yourself a role. In addition to being pingable, roles will unlock game-specific text channels.')
@@ -188,7 +181,7 @@ class ReactionManager {
                 .setTimestamp();
 
             const roleDescriptions = [];
-            for (const [emoji, roleId] of Object.entries(settings.roleEmojis)) {
+            for (const [emoji, roleId] of Object.entries(reactionRoleSettings.roleEmojis)) {
                 roleDescriptions.push(`${emoji} - <@&${roleId}>`);
             }
 
@@ -214,8 +207,7 @@ class ReactionManager {
      */
     static async manageReactions(message) {
         try {
-            const settings = config.reactionRoleSettings;
-            let targetEmojis = Object.keys(settings.roleEmojis);
+            let targetEmojis = Object.keys(reactionRoleSettings.roleEmojis);
 
             // Remove reactions that are no longer in config
             const configuredEmojis = new Set(targetEmojis);
@@ -292,8 +284,7 @@ class ReactionManager {
      * @returns {boolean} - Whether this reaction is for role assignment
      */
     static isReactionRoleMessage(reaction) {
-        const settings = config.reactionRoleSettings;
-        return settings.enabled && reaction.message.id === settings.messageId;
+        return reactionRoleSettings.enabled && reaction.message.id === reactionRoleSettings.messageId;
     }
 
     /**
@@ -302,8 +293,6 @@ class ReactionManager {
      */
     static async updateReactionRoleEmbed(message) {
         try {
-            const settings = config.reactionRoleSettings;
-
             const embed = new EmbedBuilder()
                 .setTitle('Reaction Roles')
                 .setDescription('React to this message to give yourself a role. In addition to being pingable, roles will unlock game-specific text channels.')
@@ -311,7 +300,7 @@ class ReactionManager {
                 .setTimestamp();
 
             const roleDescriptions = [];
-            for (const [emoji, roleId] of Object.entries(settings.roleEmojis)) {
+            for (const [emoji, roleId] of Object.entries(reactionRoleSettings.roleEmojis)) {
                 roleDescriptions.push(`${emoji} - <@&${roleId}>`);
             }
 
@@ -352,8 +341,8 @@ class ReactionManager {
             }
 
             const totalReactions = message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
-            const validReactions = await this.getValidReactions(message, false);
-            const validReactionsExcludingAuthor = await this.getValidReactions(message, true);
+            const messageValidReactions = await this.getValidReactions(message, false);
+            const messageValidReactionsExcludingAuthor = await this.getValidReactions(message, true);
 
             console.log(`\n=== Message Reaction Update ===`);
             console.log(`Action: ${action}`);
@@ -362,12 +351,12 @@ class ReactionManager {
             console.log(`User who reacted: ${user.tag} (${user.id})`);
             console.log(`Reaction: ${reaction.emoji}`);
             console.log(`Total reactions: ${totalReactions}`);
-            console.log(`Total valid reactions: ${validReactions.reduce((acc, r) => acc + r.count, 0)}`);
-            console.log(`Valid reactions excluding author: ${validReactionsExcludingAuthor.reduce((acc, r) => acc + r.count, 0)}`);
+            console.log(`Total valid reactions: ${messageValidReactions.reduce((acc, r) => acc + r.count, 0)}`);
+            console.log(`Valid reactions excluding author: ${messageValidReactionsExcludingAuthor.reduce((acc, r) => acc + r.count, 0)}`);
 
-            if (validReactions.length > 0) {
+            if (messageValidReactions.length > 0) {
                 console.log(`Valid reactions breakdown:`);
-                validReactions.forEach(r => {
+                messageValidReactions.forEach(r => {
                     console.log(`  ${r.emoji}: ${r.count}`);
                 });
             }
@@ -384,7 +373,7 @@ class ReactionManager {
      * @returns {boolean} - Whether the emoji is valid
      */
     static isValidReaction(emoji) {
-        return config.validReactions.includes(emoji);
+        return validReactions.includes(emoji);
     }
 
     /**
@@ -394,7 +383,7 @@ class ReactionManager {
      * @returns {Array} - Array of valid reaction objects
      */
     static async getValidReactions(message, excludeAuthorReactions = true) {
-        const validReactions = [];
+        const messageValidReactions = [];
 
         for (const [emoji, reaction] of message.reactions.cache) {
             if (this.isValidReaction(emoji)) {
@@ -406,14 +395,14 @@ class ReactionManager {
                     count -= 1; // Exclude author's own reaction
                 }
 
-                validReactions.push({
+                messageValidReactions.push({
                     emoji: emoji,
                     count: count
                 });
             }
         }
 
-        return validReactions;
+        return messageValidReactions;
     }
 
     // ==================== UTILITY FUNCTIONS ====================
@@ -427,7 +416,7 @@ class ReactionManager {
             let configContent = fs.readFileSync(configPath, 'utf8');
 
             const messageIdRegex = /(messageId:\s*)(null|'[^']*'|"[^"]*"|\d+)/;
-            const newMessageIdValue = config.reactionRoleSettings.messageId ? `'${config.reactionRoleSettings.messageId}'` : 'null';
+            const newMessageIdValue = reactionRoleSettings.messageId ? `'${reactionRoleSettings.messageId}'` : 'null';
 
             if (messageIdRegex.test(configContent)) {
                 configContent = configContent.replace(messageIdRegex, `$1${newMessageIdValue}`);
@@ -446,7 +435,7 @@ class ReactionManager {
      * @returns {Array} - Array of valid reaction emojis
      */
     static getValidReactionsList() {
-        return [...config.validReactions];
+        return [...validReactions];
     }
 }
 
