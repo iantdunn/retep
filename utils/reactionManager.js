@@ -207,11 +207,8 @@ class ReactionManager {
      */
     static async manageReactions(message) {
         try {
-            let targetEmojis = Object.keys(reactionRoleSettings.roleEmojis);
-
             // Remove reactions that are no longer in config
-            const configuredEmojis = new Set(targetEmojis);
-            await this.cleanupRemovedReactions(message, configuredEmojis);
+            await this.cleanupRemovedReactions(message);
 
             // Update embed if this is a reaction role message
             if (this.isReactionRoleMessage({ message })) {
@@ -221,18 +218,34 @@ class ReactionManager {
             // Check existing reactions to avoid unnecessary API calls
             const existingReactions = new Set(message.reactions.cache.keys());
 
-            for (const emoji of targetEmojis) {
-                if (!existingReactions.has(emoji)) {
+            // For each emoji in the role mappings
+            for (const emojiStr of Object.keys(reactionRoleSettings.roleEmojis)) {
+                // Extract the emoji ID for custom emojis
+                const emojiMatch = emojiStr.match(/<:.+?:(\d+)>/);
+                const emojiId = emojiMatch ? emojiMatch[1] : emojiStr;
+
+                // Check if this emoji already exists in the reactions
+                const alreadyExists = Array.from(existingReactions).some(existing => {
+                    if (emojiMatch) {
+                        // For custom emojis, compare the ID
+                        return existing === emojiId;
+                    } else {
+                        // For standard emojis, direct comparison
+                        return existing === emojiStr;
+                    }
+                });
+
+                if (!alreadyExists) {
                     try {
-                        await message.react(emoji);
-                        console.log(`Added reaction: ${emoji}`);
+                        await message.react(emojiStr);
+                        console.log(`Added reaction: ${emojiStr}`);
                         // Small delay to avoid rate limits
                         await new Promise(resolve => setTimeout(resolve, 250));
                     } catch (error) {
-                        console.error(`Failed to add reaction ${emoji}:`, error);
+                        console.error(`Failed to add reaction ${emojiStr}:`, error);
                     }
                 } else {
-                    console.log(`Reaction ${emoji} already exists, skipping`);
+                    console.log(`Reaction ${emojiStr} already exists, skipping`);
                 }
             }
         } catch (error) {
@@ -243,15 +256,14 @@ class ReactionManager {
     /**
      * Remove reactions that are no longer in the config
      * @param {Message} message - The reaction roles message
-     * @param {Set} configuredEmojis - Set of currently configured emojis
      */
-    static async cleanupRemovedReactions(message, configuredEmojis) {
+    static async cleanupRemovedReactions(message) {
         try {
             const reactionsToRemove = [];
 
-            for (const [emoji, reaction] of message.reactions.cache) {
-                if (!configuredEmojis.has(emoji)) {
-                    reactionsToRemove.push({ emoji, reaction });
+            for (const [emoji, reaction] of message.reactions.cache) { // for emoji in the reactions of the message
+                if (!Object.keys(reactionRoleSettings.roleEmojis).toString().includes(emoji)) { // if the emoji is not in the valid reactions list
+                    reactionsToRemove.push({ emoji, reaction }); // add to removal list
                 }
             }
 
