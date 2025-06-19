@@ -10,10 +10,7 @@ class ReactionManager {
      */
     static async initialize(client) {
         console.log('Initializing Reaction Manager...');
-
-        // Initialize reaction roles if enabled
         await this.initializeReactionRoles(client);
-
         console.log('Reaction Manager initialized successfully');
     }
 
@@ -41,35 +38,9 @@ class ReactionManager {
                 return;
             }
 
-            let message = null;
-
-            // Check if message ID exists and try to fetch it
-            if (settings.messageId) {
-                try {
-                    message = await channel.messages.fetch(settings.messageId);
-                    console.log(`Found existing reaction role message: ${settings.messageId}`);
-                } catch (error) {
-                    console.log(`Could not fetch message with ID ${settings.messageId}, will create new one`);
-                    // Clear the invalid message ID
-                    settings.messageId = null;
-                    this.updateConfigFile();
-                }
-            }
-
-            // Create new message if none exists
-            if (!message) {
-                message = await this.createReactionRoleMessage(channel);
-                if (message) {
-                    // Update config with new message ID
-                    settings.messageId = message.id;
-                    this.updateConfigFile();
-                    console.log(`Created new reaction role message: ${message.id}`);
-                }
-            }
-
+            let message = await this.getOrCreateReactionRoleMessage(channel, settings);
             if (message) {
-                // Ensure all required reactions are present
-                await this.ensureReactionRoleReactions(message);
+                await this.manageReactions(message, { selfReact: true, syncWithConfig: true });
             }
 
         } catch (error) {
@@ -78,16 +49,44 @@ class ReactionManager {
     }
 
     /**
+     * Get existing reaction role message or create a new one
+     * @param {TextChannel} channel - Discord channel
+     * @param {Object} settings - Reaction role settings
+     * @returns {Message|null} - The reaction role message
+     */
+    static async getOrCreateReactionRoleMessage(channel, settings) {
+        let message = null;
+
+        // Try to fetch existing message
+        if (settings.messageId) {
+            try {
+                message = await channel.messages.fetch(settings.messageId);
+                console.log(`Found existing reaction role message: ${settings.messageId}`);
+                return message;
+            } catch (error) {
+                console.log(`Could not fetch message with ID ${settings.messageId}, will create new one`);
+                settings.messageId = null;
+                this.updateConfigFile();
+            }
+        }
+
+        // Create new message if none exists
+        message = await this.createReactionRoleMessage(channel);
+        if (message) {
+            settings.messageId = message.id;
+            this.updateConfigFile();
+            console.log(`Created new reaction role message: ${message.id}`);
+        }
+
+        return message;
+    }    /**
      * Main handler for reaction additions
      * @param {MessageReaction} reaction - The reaction object
      * @param {User} user - The user who reacted
      */
     static async handleReactionAdd(reaction, user) {
         try {
-            // Handle reaction roles first
-            const roleHandled = await this.handleReactionRoleAdd(reaction, user);
-
-            // If it wasn't a reaction role, handle regular reaction tracking
+            const roleHandled = await this.handleReactionRoleAction(reaction, user, 'add');
             if (!roleHandled) {
                 await this.processReactionTracking(reaction, user, 'add');
             }
@@ -103,10 +102,7 @@ class ReactionManager {
      */
     static async handleReactionRemove(reaction, user) {
         try {
-            // Handle reaction roles first
-            const roleHandled = await this.handleReactionRoleRemove(reaction, user);
-
-            // If it wasn't a reaction role, handle regular reaction tracking
+            const roleHandled = await this.handleReactionRoleAction(reaction, user, 'remove');
             if (!roleHandled) {
                 await this.processReactionTracking(reaction, user, 'remove');
             }
@@ -118,21 +114,18 @@ class ReactionManager {
     // ==================== REACTION ROLES FUNCTIONALITY ====================
 
     /**
-     * Handle reaction add for role assignment
+     * Unified handler for reaction role add/remove actions
      * @param {MessageReaction} reaction - The reaction object
      * @param {User} user - The user who reacted
+     * @param {string} action - 'add' or 'remove'
      * @returns {boolean} - Whether this was handled as a reaction role
      */
-    static async handleReactionRoleAdd(reaction, user) {
+    static async handleReactionRoleAction(reaction, user, action) {
         try {
             const settings = config.reactionRoleSettings;
 
-            if (!settings.enabled || reaction.message.id !== settings.messageId) {
-                return false;
-            }
-
-            if (user.bot) {
-                return true; // Handled but no action needed
+            if (!settings.enabled || reaction.message.id !== settings.messageId || user.bot) {
+                return settings.enabled && reaction.message.id === settings.messageId && user.bot;
             }
 
             const emoji = reaction.emoji.toString();
@@ -140,7 +133,7 @@ class ReactionManager {
 
             if (!roleId) {
                 console.log(`No role mapping found for emoji: ${emoji}`);
-                return true; // Handled but no matching role
+                return true;
             }
 
             const guild = reaction.message.guild;
@@ -152,71 +145,31 @@ class ReactionManager {
                 return true;
             }
 
-            if (member.roles.cache.has(roleId)) {
-                console.log(`User ${user.tag} already has role ${role.name}`);
-                return true;
+            const hasRole = member.roles.cache.has(roleId);
+
+            if (action === 'add') {
+                if (hasRole) {
+                    console.log(`User ${user.tag} already has role ${role.name}`);
+                    return true;
+                }
+                await member.roles.add(role);
+                console.log(`✅ Added role ${role.name} to ${user.tag}`);
+            } else if (action === 'remove') {
+                if (!hasRole) {
+                    console.log(`User ${user.tag} doesn't have role ${role.name}`);
+                    return true;
+                }
+                await member.roles.remove(role);
+                console.log(`❌ Removed role ${role.name} from ${user.tag}`);
             }
 
-            await member.roles.add(role);
-            console.log(`✅ Added role ${role.name} to ${user.tag}`);
             return true;
 
         } catch (error) {
-            console.error('Error handling reaction role add:', error);
+            console.error(`Error handling reaction role ${action}:`, error);
             return false;
         }
-    }
-
-    /**
-     * Handle reaction remove for role removal
-     * @param {MessageReaction} reaction - The reaction object
-     * @param {User} user - The user who removed the reaction
-     * @returns {boolean} - Whether this was handled as a reaction role
-     */
-    static async handleReactionRoleRemove(reaction, user) {
-        try {
-            const settings = config.reactionRoleSettings;
-
-            if (!settings.enabled || reaction.message.id !== settings.messageId) {
-                return false;
-            }
-
-            if (user.bot) {
-                return true; // Handled but no action needed
-            }
-
-            const emoji = reaction.emoji.toString();
-            const roleId = settings.roleEmojis[emoji];
-
-            if (!roleId) {
-                return true; // Handled but no matching role
-            }
-
-            const guild = reaction.message.guild;
-            const member = await guild.members.fetch(user.id);
-            const role = guild.roles.cache.get(roleId);
-
-            if (!role) {
-                console.error(`Role not found: ${roleId}`);
-                return true;
-            }
-
-            if (!member.roles.cache.has(roleId)) {
-                console.log(`User ${user.tag} doesn't have role ${role.name}`);
-                return true;
-            }
-
-            await member.roles.remove(role);
-            console.log(`❌ Removed role ${role.name} from ${user.tag}`);
-            return true;
-
-        } catch (error) {
-            console.error('Error handling reaction role remove:', error);
-            return false;
-        }
-    }
-
-    /**
+    }    /**
      * Create the reaction role message with embed
      * @param {TextChannel} channel - Discord channel to send message to
      * @returns {Message} - The created message
@@ -231,7 +184,6 @@ class ReactionManager {
                 .setColor('#42f5f5')
                 .setTimestamp();
 
-            // Add field showing emoji-role mappings
             const roleDescriptions = [];
             for (const [emoji, roleId] of Object.entries(settings.roleEmojis)) {
                 roleDescriptions.push(`${emoji} - <@&${roleId}>`);
@@ -251,38 +203,96 @@ class ReactionManager {
             console.error('Error creating reaction role message:', error);
             return null;
         }
-    }
-
-    /**
-     * Ensure all required reactions are present on the reaction roles message
-     * @param {Message} message - Discord message to add reactions to
+    }    /**
+     * Unified method to manage reactions on a message
+     * @param {Message} message - Discord message to manage reactions on
+     * @param {Object} options - Options for reaction management
+     * @param {boolean} options.selfReact - Whether the bot should react with emojis
+     * @param {boolean} options.syncWithConfig - Whether to sync reactions with config
+     * @param {Array} options.customEmojis - Custom emoji list (overrides config)
      */
-    static async ensureReactionRoleReactions(message) {
+    static async manageReactions(message, options = {}) {
+        const { selfReact = false, syncWithConfig = false, customEmojis = null } = options;
+
         try {
             const settings = config.reactionRoleSettings;
+            let targetEmojis = customEmojis || Object.keys(settings.roleEmojis);
 
-            for (const emoji of Object.keys(settings.roleEmojis)) {
-                try {
-                    // Check if reaction already exists
-                    const existingReaction = message.reactions.cache.get(emoji);
-                    if (!existingReaction) {
-                        await message.react(emoji);
-                        console.log(`Added reaction: ${emoji}`);
-                        // Small delay to avoid rate limits
-                        await new Promise(resolve => setTimeout(resolve, 250));
-                    }
-                } catch (error) {
-                    console.error(`Failed to add reaction ${emoji}:`, error);
+            if (syncWithConfig) {
+                // Remove reactions that are no longer in config
+                const configuredEmojis = new Set(targetEmojis);
+                await this.cleanupRemovedReactions(message, configuredEmojis);
+
+                // Update embed if this is a reaction role message
+                if (this.isReactionRoleMessage({ message })) {
+                    await this.updateReactionRoleEmbed(message);
                 }
             }
+
+            if (selfReact) {
+                // Check existing reactions to avoid unnecessary API calls
+                const existingReactions = new Set(message.reactions.cache.keys());
+
+                for (const emoji of targetEmojis) {
+                    if (!existingReactions.has(emoji)) {
+                        try {
+                            await message.react(emoji);
+                            console.log(`Added reaction: ${emoji}`);
+                            // Small delay to avoid rate limits
+                            await new Promise(resolve => setTimeout(resolve, 250));
+                        } catch (error) {
+                            console.error(`Failed to add reaction ${emoji}:`, error);
+                        }
+                    } else {
+                        console.log(`Reaction ${emoji} already exists, skipping`);
+                    }
+                }
+            }
+
         } catch (error) {
-            console.error('Error ensuring reactions:', error);
+            console.error('Error managing reactions:', error);
         }
     }
 
     /**
+     * Remove reactions that are no longer in the config
+     * @param {Message} message - The reaction roles message
+     * @param {Set} configuredEmojis - Set of currently configured emojis
+     */
+    static async cleanupRemovedReactions(message, configuredEmojis) {
+        try {
+            const reactionsToRemove = [];
+
+            for (const [emoji, reaction] of message.reactions.cache) {
+                if (!configuredEmojis.has(emoji)) {
+                    reactionsToRemove.push({ emoji, reaction });
+                }
+            }
+
+            if (reactionsToRemove.length === 0) {
+                console.log('No reactions to clean up');
+                return;
+            }
+
+            console.log(`Removing ${reactionsToRemove.length} outdated reactions...`);
+
+            for (const { emoji, reaction } of reactionsToRemove) {
+                try {
+                    const botUser = message.client.user;
+                    await reaction.users.remove(botUser);
+                    console.log(`Removed bot reaction: ${emoji}`);
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                } catch (error) {
+                    console.error(`Failed to remove reaction ${emoji}:`, error);
+                }
+            }
+
+        } catch (error) {
+            console.error('Error cleaning up removed reactions:', error);
+        }
+    }    /**
      * Check if a reaction is for reaction roles
-     * @param {MessageReaction} reaction - The reaction object
+     * @param {MessageReaction|Object} reaction - The reaction object
      * @returns {boolean} - Whether this reaction is for role assignment
      */
     static isReactionRoleMessage(reaction) {
@@ -290,7 +300,46 @@ class ReactionManager {
         return settings.enabled && reaction.message.id === settings.messageId;
     }
 
-    // ==================== REACTION TRACKING FUNCTIONALITY ====================
+    /**
+     * Update the reaction roles embed with current role mappings
+     * @param {Message} message - The reaction roles message to update
+     */
+    static async updateReactionRoleEmbed(message) {
+        try {
+            const settings = config.reactionRoleSettings;
+
+            const embed = new EmbedBuilder()
+                .setTitle('Reaction Roles')
+                .setDescription('React to this message to give yourself a role. In addition to being pingable, roles will unlock game-specific text channels.')
+                .setColor('#42f5f5')
+                .setTimestamp();
+
+            const roleDescriptions = [];
+            for (const [emoji, roleId] of Object.entries(settings.roleEmojis)) {
+                roleDescriptions.push(`${emoji} - <@&${roleId}>`);
+            }
+
+            if (roleDescriptions.length > 0) {
+                embed.addFields({
+                    name: 'Available Roles',
+                    value: roleDescriptions.join('\n'),
+                    inline: false
+                });
+            } else {
+                embed.addFields({
+                    name: 'Available Roles',
+                    value: 'No roles configured',
+                    inline: false
+                });
+            }
+
+            await message.edit({ embeds: [embed] });
+            console.log('Updated reaction roles embed with current config');
+
+        } catch (error) {
+            console.error('Error updating reaction roles embed:', error);
+        }
+    }    // ==================== REACTION TRACKING FUNCTIONALITY ====================
 
     /**
      * Process and log reaction statistics for a message
@@ -302,12 +351,10 @@ class ReactionManager {
         try {
             const message = reaction.message;
 
-            // Ensure the message is fully fetched
             if (message.partial) {
                 await message.fetch();
             }
 
-            // Calculate statistics
             const totalReactions = message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
             const validReactions = this.getValidReactions(message);
             const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
@@ -323,7 +370,6 @@ class ReactionManager {
             console.log(`Total valid reactions: ${totalValidReactions}`);
             console.log(`Valid reactions (excluding author): ${validReactionsExcludingAuthor}`);
 
-            // Log breakdown of valid reactions
             if (validReactions.length > 0) {
                 console.log(`Valid reactions breakdown:`);
                 validReactions.forEach(r => {
@@ -377,27 +423,15 @@ class ReactionManager {
 
         for (const [emoji, reaction] of message.reactions.cache) {
             if (this.isValidReaction(emoji)) {
-                // Fetch all users who reacted with this emoji
                 const users = await reaction.users.fetch();
-
-                // Count reactions excluding the message author
                 const nonAuthorReactions = users.filter(user =>
                     user.id !== message.author.id
                 ).size;
-
                 validReactionCount += nonAuthorReactions;
             }
         }
 
         return validReactionCount;
-    }
-
-    /**
-     * Get the list of valid reactions
-     * @returns {Array} - Array of valid reaction emojis
-     */
-    static getValidReactionsList() {
-        return [...config.validReactions];
     }
 
     // ==================== UTILITY FUNCTIONS ====================
@@ -410,7 +444,6 @@ class ReactionManager {
             const configPath = path.join(__dirname, '../config.js');
             let configContent = fs.readFileSync(configPath, 'utf8');
 
-            // Update the messageId in the existing config file
             const messageIdRegex = /(messageId:\s*)(null|'[^']*'|"[^"]*"|\d+)/;
             const newMessageIdValue = config.reactionRoleSettings.messageId ? `'${config.reactionRoleSettings.messageId}'` : 'null';
 
@@ -424,6 +457,51 @@ class ReactionManager {
         } catch (error) {
             console.error('Error updating config file:', error);
         }
+    }
+
+    /**
+     * Force refresh reaction roles (clean sync with config)
+     * @param {Client} client - Discord client instance
+     * @returns {boolean} - Success status
+     */
+    static async forceRefreshReactionRoles(client) {
+        try {
+            const settings = config.reactionRoleSettings;
+
+            if (!settings.enabled || !settings.messageId) {
+                console.log('Reaction roles not enabled or no message ID set');
+                return false;
+            }
+
+            const channel = await client.channels.fetch(settings.channelId);
+            if (!channel) {
+                console.error(`Cannot find channel with ID: ${settings.channelId}`);
+                return false;
+            }
+
+            const message = await channel.messages.fetch(settings.messageId);
+            if (!message) {
+                console.error(`Cannot find reaction roles message: ${settings.messageId}`);
+                return false;
+            }
+
+            console.log('Force refreshing reaction roles...');
+            await this.manageReactions(message, { selfReact: true, syncWithConfig: true });
+            console.log('Successfully refreshed reaction roles');
+            return true;
+
+        } catch (error) {
+            console.error('Error force refreshing reaction roles:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get the list of valid reactions
+     * @returns {Array} - Array of valid reaction emojis
+     */
+    static getValidReactionsList() {
+        return [...config.validReactions];
     }
 }
 
