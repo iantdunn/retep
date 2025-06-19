@@ -19,7 +19,7 @@ module.exports = {
 
     reactionRoleSettings: {
         channelId: '1381413895083921449', // retep-training
-        messageId: '1384949628071448668', // Will be set when message is sent
+        messageId: '1385077601428705280', // Will be set when message is sent
         enabled: true,
         roleEmojis: {
             '<:2k:1305928096570146896>': '1304863176843726898',
