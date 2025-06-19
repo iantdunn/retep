@@ -177,8 +177,7 @@ class ReactionManager {
             const embed = new EmbedBuilder()
                 .setTitle('Reaction Roles')
                 .setDescription('React to this message to give yourself a role. In addition to being pingable, roles will unlock game-specific text channels.')
-                .setColor('#42f5f5')
-                .setTimestamp();
+                .setColor('#42f5f5');
 
             const roleDescriptions = [];
             for (const [emoji, roleId] of Object.entries(reactionRoleSettings.roleEmojis)) {
@@ -308,8 +307,7 @@ class ReactionManager {
             const embed = new EmbedBuilder()
                 .setTitle('Reaction Roles')
                 .setDescription('React to this message to give yourself a role. In addition to being pingable, roles will unlock game-specific text channels.')
-                .setColor('#42f5f5')
-                .setTimestamp();
+                .setColor('#42f5f5');
 
             const roleDescriptions = [];
             for (const [emoji, roleId] of Object.entries(reactionRoleSettings.roleEmojis)) {
