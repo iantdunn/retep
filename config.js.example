@@ -1,0 +1,32 @@
+module.exports = {
+    // Bot token
+    discordToken: 'DISCORD_TOKEN',
+
+    // Used for deploying commands and guild-specific operations
+    discordClientId: 'DISCORD_CLIENT_ID',
+    discordGuildId: 'DISCORD_GUILD_ID',
+
+    validReactions: [
+        '🔥', '💯', '💀',
+    ],
+
+    reactionSettings: {
+        channelId: 'CHANNEL_ID', // retep-training
+        excludeAuthorReactions: true
+    },
+
+    welcomeSettings: {
+        channelId: 'CHANNEL_ID', // hello-goodbye
+        welcomeEnabled: true,
+        goodbyeEnabled: true
+    },
+
+    reactionRoleSettings: {
+        channelId: 'CHANNEL_ID',
+        messageId: '', // Will be set when message is sent
+        enabled: true,
+        roleEmojis: {
+            '💀': 'ROLE_ID',
+        }
+    }
+};
