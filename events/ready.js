@@ -1,4 +1,4 @@
-const { Events } = require('discord.js');
+const { Events, ActivityType } = require('discord.js');
 const { ReactionManager } = require('../utils/reactionManager');
 
 module.exports = {
@@ -10,13 +10,6 @@ module.exports = {
         // Initialize reaction manager (includes reaction roles)
         await ReactionManager.initialize(client);
 
-        client.user.setActivity('S12 E19', { type: 'WATCHING' });
-
-        // await client.user.setPresence({
-        //     activities: [{ name: 'S12 E19', type: 'WATCHING' }],
-        //     status: 'online'
-        // });
-
-        console.log('Set presence to "Watching S12 E19"');
+        client.user.setActivity('Family Guy nS12 E19', { type: ActivityType.Watching });
     },
 };
