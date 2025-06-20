@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
-const { ReactionManager } = require('../../utils/reactionManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -52,9 +51,18 @@ async function handleStats(interaction) {
 
         // Calculate statistics
         const totalReactions = message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
-        const validReactionsIncludingAuthor = await ReactionManager.getValidReactions(message, false);
+        const fireboard = interaction.client.reactionHandler?.fireboard;
+
+        if (!fireboard) {
+            return await interaction.reply({
+                content: 'Fireboard system is not available.',
+                flags: MessageFlags.Ephemeral
+            });
+        }
+
+        const validReactionsIncludingAuthor = await fireboard.getValidReactions(message, false);
         const totalValidReactions = await validReactionsIncludingAuthor.reduce((acc, r) => acc + r.count, 0);
-        const validReactionsExcludingAuthor = await ReactionManager.getValidReactions(message, true);
+        const validReactionsExcludingAuthor = await fireboard.getValidReactions(message, true);
 
         // Create embed
         const embed = new EmbedBuilder()
@@ -89,7 +97,16 @@ async function handleStats(interaction) {
 }
 
 async function handleValidList(interaction) {
-    const validReactions = ReactionManager.getValidReactionsList();
+    const fireboard = interaction.client.reactionHandler?.fireboard;
+
+    if (!fireboard) {
+        return await interaction.reply({
+            content: 'Fireboard system is not available.',
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    const validReactions = fireboard.getValidReactionsList();
 
     const embed = new EmbedBuilder()
         .setTitle('Valid Reactions List')

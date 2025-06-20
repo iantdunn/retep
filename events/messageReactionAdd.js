@@ -1,5 +1,4 @@
 const { Events } = require('discord.js');
-const { ReactionManager } = require('../utils/reactionManager');
 
 module.exports = {
     name: Events.MessageReactionAdd,
@@ -16,7 +15,9 @@ module.exports = {
             }
         }
 
-        // Handle the reaction using the unified ReactionManager
-        await ReactionManager.handleReactionAdd(reaction, user);
+        // Handle the reaction using the reaction handler instance attached to client
+        if (reaction.message.client.reactionHandler) {
+            await reaction.message.client.reactionHandler.handleReactionAdd(reaction, user);
+        }
     },
 };

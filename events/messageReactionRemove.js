@@ -1,5 +1,4 @@
 const { Events } = require('discord.js');
-const { ReactionManager } = require('../utils/reactionManager');
 
 module.exports = {
     name: Events.MessageReactionRemove,
@@ -16,7 +15,9 @@ module.exports = {
             }
         }
 
-        // Handle the reaction using the unified ReactionManager
-        await ReactionManager.handleReactionRemove(reaction, user);
+        // Handle the reaction using the reaction handler instance attached to client
+        if (reaction.message.client.reactionHandler) {
+            await reaction.message.client.reactionHandler.handleReactionRemove(reaction, user);
+        }
     },
 };

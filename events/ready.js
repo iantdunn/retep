@@ -1,5 +1,5 @@
 const { Events, ActivityType } = require('discord.js');
-const { ReactionManager } = require('../utils/reactionManager');
+const { ReactionHandler } = require('../utils/reactionHandler');
 
 module.exports = {
     name: Events.ClientReady,
@@ -7,8 +7,9 @@ module.exports = {
     async execute(client) {
         console.log(`Ready! Logged in as ${client.user.tag}`);
 
-        // Initialize reaction manager (includes reaction roles)
-        await ReactionManager.initialize(client);
+        // Initialize reaction handler instance and attach to client
+        client.reactionHandler = new ReactionHandler(client);
+        await client.reactionHandler.initialize();
 
         client.user.setActivity('Family Guy S12 E19', { type: ActivityType.Watching });
     },
