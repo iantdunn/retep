@@ -1,5 +1,5 @@
 const { Events, ActivityType } = require('discord.js');
-const { ReactionHandler } = require('../utils/reactionHandler');
+const { ReactionHandler } = require('../reactions/reactionHandler');
 
 module.exports = {
     name: Events.ClientReady,
