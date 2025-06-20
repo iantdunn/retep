@@ -10,6 +10,6 @@ module.exports = {
         // Initialize reaction manager (includes reaction roles)
         await ReactionManager.initialize(client);
 
-        client.user.setActivity('Family Guy nS12 E19', { type: ActivityType.Watching });
+        client.user.setActivity('Family Guy S12 E19', { type: ActivityType.Watching });
     },
 };
