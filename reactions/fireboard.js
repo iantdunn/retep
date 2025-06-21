@@ -316,10 +316,8 @@ class Fireboard {
                 return;
             }
 
-            // Send the fireboard message with embed
-            const fireboardMessage = await fireboardChannel.send({
-                embeds: [embed]
-            });
+            // Send the fireboard message with embed only (no content)
+            const fireboardMessage = await fireboardChannel.send({ embeds: [embed] });
 
             // Save to database using findOrCreate to handle race conditions
             const entry = await this.createFireboardEntry(message.id, fireboardMessage.id, message.author.id);
@@ -375,11 +373,43 @@ class Fireboard {
                 timestamp: message.createdAt.toISOString()
             };
 
-            // Add image if message has attachments
+            // Add attachment information if message has attachments
             if (message.attachments.size > 0) {
-                const firstAttachment = message.attachments.first();
-                if (firstAttachment.contentType && firstAttachment.contentType.startsWith('image/')) {
-                    embed.image = { url: firstAttachment.url };
+                const attachments = Array.from(message.attachments.values());
+                const imageAttachment = attachments.find(att =>
+                    att.contentType && att.contentType.startsWith('image/')
+                );
+
+                if (imageAttachment) {
+                    // Add image if it's an image attachment
+                    embed.image = { url: imageAttachment.url };
+                } else {
+                    // For non-image attachments or if image can't be displayed, show filename
+                    const attachmentNames = attachments
+                        .map(att => att.name || 'Unknown file')
+                        .join(', ');
+
+                    embed.fields.push({
+                        name: '📎 Attachments',
+                        value: attachmentNames,
+                        inline: false
+                    });
+                }
+
+                // If there are multiple attachments and we showed an image, also list other files
+                if (imageAttachment && attachments.length > 1) {
+                    const otherAttachments = attachments
+                        .filter(att => att !== imageAttachment)
+                        .map(att => att.name || 'Unknown file')
+                        .join(', ');
+
+                    if (otherAttachments) {
+                        embed.fields.push({
+                            name: '📎 Other Attachments',
+                            value: otherAttachments,
+                            inline: false
+                        });
+                    }
                 }
             }
 
