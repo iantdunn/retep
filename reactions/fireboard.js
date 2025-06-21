@@ -26,6 +26,9 @@ class Fireboard {
                 return;
             }
 
+            // Refresh all fireboard entries on startup
+            await this.refreshAllFireboardEntries();
+
             console.log('Fireboard initialized successfully');
         } catch (error) {
             console.error('Error initializing Fireboard:', error);
@@ -102,16 +105,23 @@ class Fireboard {
 
             if (messageValidReactions.length > 0) {
                 console.log(`Valid reactions breakdown:`);
-                messageValidReactions.forEach(r => {
+                messageValidReactionsExcludingAuthor.forEach(r => {
                     console.log(`  ${r.emoji}: ${r.count}`);
                 });
             }
 
-            console.log(`==================================\n`);
-
-            // Check if message qualifies for fireboard
+            console.log(`==================================\n`);            // Check if message qualifies for fireboard
             if (action === 'add' && await this.messageQualifiesForFireboard(message)) {
                 await this.addToFireboard(message);
+            } else if (action === 'remove') {
+                // Check if message needs to be removed from fireboard
+                await this.checkAndRemoveFromFireboard(message);
+            }
+
+            // Update existing fireboard entry if it exists
+            const existingEntry = await this.getFireboardEntry(message.id);
+            if (existingEntry) {
+                await this.updateExistingFireboardEntry(message, existingEntry);
             }
 
         } catch (error) {
@@ -250,9 +260,16 @@ class Fireboard {
                 return;
             }
 
-            // Create basic fireboard message (you can enhance this later)
+            // Generate the fireboard embed
+            const embed = await this.generateFireboardEmbed(message);
+            if (!embed) {
+                console.error('Failed to generate fireboard embed');
+                return;
+            }
+
+            // Send the fireboard message with embed
             const fireboardMessage = await fireboardChannel.send({
-                content: `🔥 **Fireboard Entry** 🔥\nOriginal message by <@${message.author.id}> in <#${message.channel.id}>\n\n${message.content || '*No text content*'}\n\n[Jump to message](${message.url})`
+                embeds: [embed]
             });
 
             // Save to database
@@ -265,35 +282,312 @@ class Fireboard {
     }
 
     /**
-     * Update an existing fireboard entry
-     * @param {Message} originalMessage - The original message
-     * @param {Message} fireboardMessage - The fireboard entry message
+     * Generate a fireboard embed for a message
+     * @param {Message} message - The Discord message object
+     * @returns {Object} - Discord embed object
      */
-    async updateFireboardEntry(originalMessage, fireboardMessage) {
+    async generateFireboardEmbed(message) {
         try {
-            // TODO: Implement fireboard update logic
-            // - Update reaction counts in embed
-            // - Edit fireboard message
-            console.log(`Would update fireboard entry for message ${originalMessage.id}`);
+            const validReactions = await this.getValidReactions(message, this.settings.excludeAuthorReactions);
+            const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
+
+            // Create reaction display string
+            const reactionDisplay = validReactions
+                .filter(r => r.count > 0)
+                .map(r => `${r.emoji} ${r.count}`)
+                .join(' • ');
+
+            const embed = {
+                color: 0xFF4500, // Orange-red color for fire theme
+                author: {
+                    name: message.author.displayName || message.author.username,
+                    icon_url: message.author.displayAvatarURL()
+                },
+                description: message.content || '*No text content*',
+                fields: [
+                    {
+                        name: '🔥 Reactions',
+                        value: reactionDisplay || 'None',
+                        inline: true
+                    },
+                    {
+                        name: '🔗 Link',
+                        value: `${message.url}`,
+                        inline: true
+                    }
+                ],
+                footer: {
+                    text: `Total: ${totalValidReactions} reactions`,
+                },
+                timestamp: message.createdAt.toISOString()
+            };
+
+            // Add image if message has attachments
+            if (message.attachments.size > 0) {
+                const firstAttachment = message.attachments.first();
+                if (firstAttachment.contentType && firstAttachment.contentType.startsWith('image/')) {
+                    embed.image = { url: firstAttachment.url };
+                }
+            }
+
+            return embed;
         } catch (error) {
-            console.error('Error updating fireboard entry:', error);
+            console.error('Error generating fireboard embed:', error);
+            return null;
         }
     }
 
     /**
-     * Remove a message from the fireboard if it no longer qualifies
-     * @param {Message} fireboardMessage - The fireboard entry message
+     * Refresh all fireboard entries on bot startup
      */
-    async removeFromFireboard(fireboardMessage) {
+    async refreshAllFireboardEntries() {
         try {
-            // TODO: Implement fireboard removal logic
-            // - Delete fireboard message
-            // - Remove from storage
-            console.log(`Would remove fireboard entry`);
+            console.log('Refreshing all fireboard entries...');
+
+            // Get all fireboard entries from database
+            const entries = await FireboardEntry.findAll();
+            console.log(`Found ${entries.length} fireboard entries to refresh`);
+
+            const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
+            if (!fireboardChannel) {
+                console.error('Fireboard channel not found during refresh');
+                return;
+            }
+
+            let refreshed = 0;
+            let removed = 0;
+
+            for (const entry of entries) {
+                try {
+                    // Try to fetch the original message
+                    const originalMessage = await this.fetchMessageById(entry.messageId);
+                    if (!originalMessage) {
+                        // Original message no longer exists, remove from fireboard
+                        await this.removeFireboardEntryCompletely(entry);
+                        removed++;
+                        continue;
+                    }
+
+                    // Check if fireboard message still exists
+                    let fireboardMessage;
+                    try {
+                        fireboardMessage = await fireboardChannel.messages.fetch(entry.fireboardMessageId);
+                    } catch (error) {
+                        // Fireboard message doesn't exist, recreate it
+                        console.log(`Recreating missing fireboard message for ${entry.messageId}`);
+                        await this.recreateFireboardEntry(originalMessage, entry);
+                        refreshed++;
+                        continue;
+                    }
+
+                    // Update the existing fireboard message
+                    await this.updateFireboardMessage(originalMessage, fireboardMessage);
+                    refreshed++;
+
+                } catch (error) {
+                    console.error(`Error refreshing entry ${entry.messageId}:`, error);
+                }
+            }
+
+            console.log(`Fireboard refresh complete: ${refreshed} updated, ${removed} removed`);
         } catch (error) {
-            console.error('Error removing from fireboard:', error);
+            console.error('Error refreshing fireboard entries:', error);
         }
     }
+
+    /**
+     * Fetch a message by ID from any channel the bot has access to
+     * @param {string} messageId - The message ID to fetch
+     * @returns {Promise<Message|null>} - The message or null if not found
+     */
+    async fetchMessageById(messageId) {
+        try {
+            // Try to find the message in all cached channels
+            for (const [, guild] of this.client.guilds.cache) {
+                for (const [, channel] of guild.channels.cache) {
+                    if (channel.isTextBased()) {
+                        try {
+                            const message = await channel.messages.fetch(messageId);
+                            return message;
+                        } catch (error) {
+                            // Message not in this channel, continue
+                        }
+                    }
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching message by ID:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Recreate a fireboard entry when the original fireboard message is missing
+     * @param {Message} originalMessage - The original message
+     * @param {FireboardEntry} entry - The database entry
+     */
+    async recreateFireboardEntry(originalMessage, entry) {
+        try {
+            const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
+            if (!fireboardChannel) return;
+
+            const embed = await this.generateFireboardEmbed(originalMessage);
+            if (!embed) return;
+
+            const newFireboardMessage = await fireboardChannel.send({ embeds: [embed] });
+
+            // Update the database with the new fireboard message ID
+            await entry.update({ fireboardMessageId: newFireboardMessage.id });
+
+            console.log(`Recreated fireboard entry for message ${originalMessage.id}`);
+        } catch (error) {
+            console.error('Error recreating fireboard entry:', error);
+        }
+    }
+
+    /**
+     * Update an existing fireboard message with current reaction data
+     * @param {Message} originalMessage - The original message
+     * @param {Message} fireboardMessage - The fireboard message to update
+     */
+    async updateFireboardMessage(originalMessage, fireboardMessage) {
+        try {
+            const embed = await this.generateFireboardEmbed(originalMessage);
+            if (!embed) return;
+
+            await fireboardMessage.edit({ embeds: [embed] });
+        } catch (error) {
+            console.error('Error updating fireboard message:', error);
+        }
+    }
+
+    /**
+     * Check if a message should be removed from fireboard and remove it if necessary
+     * @param {Message} message - The Discord message object
+     */
+    async checkAndRemoveFromFireboard(message) {
+        try {
+            const entry = await this.getFireboardEntry(message.id);
+            if (!entry) return; // Not on fireboard
+
+            // Check if message still qualifies (ignoring the "already exists" check)
+            const validReactions = await this.getValidReactions(message, this.settings.excludeAuthorReactions);
+            const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
+
+            if (totalValidReactions < this.settings.threshold) {
+                await this.removeFireboardEntryCompletely(entry);
+                console.log(`Removed message ${message.id} from fireboard (below threshold)`);
+            }
+        } catch (error) {
+            console.error('Error checking fireboard removal:', error);
+        }
+    }
+
+    /**
+     * Update an existing fireboard entry with new reaction data
+     * @param {Message} originalMessage - The original message
+     * @param {FireboardEntry} entry - The database entry
+     */
+    async updateExistingFireboardEntry(originalMessage, entry) {
+        try {
+            const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
+            if (!fireboardChannel) return;
+
+            let fireboardMessage;
+            try {
+                fireboardMessage = await fireboardChannel.messages.fetch(entry.fireboardMessageId);
+            } catch (error) {
+                // Fireboard message doesn't exist, recreate it
+                await this.recreateFireboardEntry(originalMessage, entry);
+                return;
+            }
+
+            await this.updateFireboardMessage(originalMessage, fireboardMessage);
+        } catch (error) {
+            console.error('Error updating existing fireboard entry:', error);
+        }
+    }
+
+    /**
+     * Completely remove a fireboard entry (both message and database record)
+     * @param {FireboardEntry} entry - The database entry to remove
+     */
+    async removeFireboardEntryCompletely(entry) {
+        try {
+            // Try to delete the fireboard message
+            try {
+                const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
+                if (fireboardChannel) {
+                    const fireboardMessage = await fireboardChannel.messages.fetch(entry.fireboardMessageId);
+                    await fireboardMessage.delete();
+                }
+            } catch (error) {
+                // Message might already be deleted, that's fine
+                console.log(`Fireboard message ${entry.fireboardMessageId} not found for deletion`);
+            }
+
+            // Remove from database
+            await entry.destroy();
+        } catch (error) {
+            console.error('Error removing fireboard entry completely:', error);
+        }
+    }
+
+    /**
+     * Get all fireboard entries from the database
+     * @param {number} limit - Maximum number of entries to return (optional)
+     * @returns {Promise<Array>} - Array of fireboard entries
+     */
+    async getAllFireboardEntries(limit = null) {
+        try {
+            const options = {
+                order: [['createdAt', 'DESC']]
+            };
+
+            if (limit) {
+                options.limit = limit;
+            }
+
+            return await FireboardEntry.findAll(options);
+        } catch (error) {
+            console.error('Error getting all fireboard entries:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get fireboard statistics
+     * @returns {Promise<Object>} - Statistics object
+     */
+    async getFireboardStats() {
+        try {
+            const totalEntries = await FireboardEntry.count();
+            const recentEntries = await FireboardEntry.count({
+                where: {
+                    createdAt: {
+                        [require('sequelize').Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+                    }
+                }
+            });
+
+            return {
+                totalEntries,
+                recentEntries,
+                threshold: this.settings.threshold,
+                enabled: this.settings.enabled
+            };
+        } catch (error) {
+            console.error('Error getting fireboard stats:', error);
+            return {
+                totalEntries: 0,
+                recentEntries: 0,
+                threshold: this.settings.threshold,
+                enabled: this.settings.enabled
+            };
+        }
+    }
+
 }
 
 module.exports = { Fireboard };
