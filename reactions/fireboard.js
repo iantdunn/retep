@@ -86,8 +86,14 @@ class Fireboard {
         try {
             const message = reaction.message;
 
-            if (message.partial) {
-                await message.fetch();
+            // Always fetch the message to ensure we have the latest content and reactions
+            await message.fetch();
+
+            // Also fetch all reactions to ensure we have complete reaction data
+            for (const [, messageReaction] of message.reactions.cache) {
+                if (messageReaction.partial) {
+                    await messageReaction.fetch();
+                }
             }
 
             // Prevent race conditions by checking if this message is already being processed
