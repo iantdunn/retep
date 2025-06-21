@@ -12,6 +12,7 @@ class Fireboard {
         this.settings = fireboardSettings;
         this.validReactions = validReactions;
         this.fireboardEntries = new Map(); // Store fireboard entries for tracking
+        this.processingMessages = new Set(); // Track messages currently being processed
     }
 
     /**
@@ -89,43 +90,61 @@ class Fireboard {
                 await message.fetch();
             }
 
-            const totalReactions = message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
-            const messageValidReactions = await this.getValidReactions(message, false);
-            const messageValidReactionsExcludingAuthor = await this.getValidReactions(message, true);
-
-            console.log(`\n=== Fireboard Reaction Update ===`);
-            console.log(`Action: ${action}`);
-            console.log(`Message ID: ${message.id}`);
-            console.log(`Message Author: ${message.author.tag} (${message.author.id})`);
-            console.log(`User who reacted: ${user.tag} (${user.id})`);
-            console.log(`Reaction: ${reaction.emoji}`);
-            console.log(`Total reactions: ${totalReactions}`);
-            console.log(`Total valid reactions: ${messageValidReactions.reduce((acc, r) => acc + r.count, 0)}`);
-            console.log(`Valid reactions excluding author: ${messageValidReactionsExcludingAuthor.reduce((acc, r) => acc + r.count, 0)}`);
-
-            if (messageValidReactions.length > 0) {
-                console.log(`Valid reactions breakdown:`);
-                messageValidReactionsExcludingAuthor.forEach(r => {
-                    console.log(`  ${r.emoji}: ${r.count}`);
-                });
+            // Prevent race conditions by checking if this message is already being processed
+            if (this.processingMessages.has(message.id)) {
+                console.log(`Message ${message.id} is already being processed, skipping...`);
+                return;
             }
 
-            console.log(`==================================\n`);            // Check if message qualifies for fireboard
-            if (action === 'add' && await this.messageQualifiesForFireboard(message)) {
-                await this.addToFireboard(message);
-            } else if (action === 'remove') {
-                // Check if message needs to be removed from fireboard
-                await this.checkAndRemoveFromFireboard(message);
-            }
+            // Lock this message for processing
+            this.processingMessages.add(message.id);
 
-            // Update existing fireboard entry if it exists
-            const existingEntry = await this.getFireboardEntry(message.id);
-            if (existingEntry) {
-                await this.updateExistingFireboardEntry(message, existingEntry);
+            try {
+                const totalReactions = message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
+                const messageValidReactions = await this.getValidReactions(message, false);
+                const messageValidReactionsExcludingAuthor = await this.getValidReactions(message, true);
+
+                console.log(`\n=== Fireboard Reaction Update ===`);
+                console.log(`Action: ${action}`);
+                console.log(`Message ID: ${message.id}`);
+                console.log(`Message Author: ${message.author.tag} (${message.author.id})`);
+                console.log(`User who reacted: ${user.tag} (${user.id})`);
+                console.log(`Reaction: ${reaction.emoji}`);
+                console.log(`Total reactions: ${totalReactions}`);
+                console.log(`Total valid reactions: ${messageValidReactions.reduce((acc, r) => acc + r.count, 0)}`);
+                console.log(`Valid reactions excluding author: ${messageValidReactionsExcludingAuthor.reduce((acc, r) => acc + r.count, 0)}`);
+
+                if (messageValidReactions.length > 0) {
+                    console.log(`Valid reactions breakdown:`);
+                    messageValidReactionsExcludingAuthor.forEach(r => {
+                        console.log(`  ${r.emoji}: ${r.count}`);
+                    });
+                }
+
+                console.log(`==================================\n`);            // Check if message qualifies for fireboard
+                if (action === 'add' && await this.messageQualifiesForFireboard(message)) {
+                    await this.addToFireboard(message);
+                } else if (action === 'remove') {
+                    // Check if message needs to be removed from fireboard
+                    await this.checkAndRemoveFromFireboard(message);
+                }
+
+                // Update existing fireboard entry if it exists
+                const existingEntry = await this.getFireboardEntry(message.id);
+                if (existingEntry) {
+                    await this.updateExistingFireboardEntry(message, existingEntry);
+                }
+            } finally {
+                // Always unlock the message when done processing
+                this.processingMessages.delete(message.id);
             }
 
         } catch (error) {
             console.error('Error processing reaction tracking:', error);
+            // Make sure to unlock the message even if there's an error
+            if (reaction.message && reaction.message.id) {
+                this.processingMessages.delete(reaction.message.id);
+            }
         }
     }
 
@@ -200,14 +219,36 @@ class Fireboard {
      */
     async createFireboardEntry(messageId, fireboardMessageId, authorId) {
         try {
-            return await FireboardEntry.create({
-                messageId,
-                fireboardMessageId,
-                authorId
+            // Use findOrCreate to handle race conditions
+            const [entry, created] = await FireboardEntry.findOrCreate({
+                where: { messageId },
+                defaults: {
+                    messageId,
+                    fireboardMessageId,
+                    authorId
+                }
             });
+
+            if (!created) {
+                console.log(`Fireboard entry for message ${messageId} already exists`);
+            }
+
+            return entry;
         } catch (error) {
-            console.error('Error creating fireboard entry:', error);
-            return null;
+            // Handle specific unique constraint errors
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                console.log(`Unique constraint violation for message ${messageId}, entry likely already exists`);
+                // Try to find the existing entry
+                try {
+                    return await FireboardEntry.findOne({ where: { messageId } });
+                } catch (findError) {
+                    console.error('Error finding existing fireboard entry:', findError);
+                    return null;
+                }
+            } else {
+                console.error('Error creating fireboard entry:', error);
+                return null;
+            }
         }
     }
 
@@ -254,6 +295,14 @@ class Fireboard {
      */
     async addToFireboard(message) {
         try {
+            // Double-check if entry already exists to prevent race conditions
+            const existingEntry = await this.getFireboardEntry(message.id);
+            if (existingEntry) {
+                console.log(`Message ${message.id} already exists on fireboard, updating instead`);
+                await this.updateExistingFireboardEntry(message, existingEntry);
+                return;
+            }
+
             const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
             if (!fireboardChannel) {
                 console.error('Fireboard channel not found');
@@ -272,10 +321,14 @@ class Fireboard {
                 embeds: [embed]
             });
 
-            // Save to database
-            await this.createFireboardEntry(message.id, fireboardMessage.id, message.author.id);
+            // Save to database using findOrCreate to handle race conditions
+            const entry = await this.createFireboardEntry(message.id, fireboardMessage.id, message.author.id);
 
-            console.log(`Added message ${message.id} to fireboard as message ${fireboardMessage.id}`);
+            if (entry) {
+                console.log(`Added message ${message.id} to fireboard as message ${fireboardMessage.id}`);
+            } else {
+                console.log(`Failed to create database entry for message ${message.id}, but fireboard message was sent`);
+            }
         } catch (error) {
             console.error('Error adding message to fireboard:', error);
         }
