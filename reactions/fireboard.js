@@ -450,9 +450,8 @@ class Fireboard {
                 try {
                     // Try to fetch the original message
                     const originalMessage = await this.fetchMessageById(entry.messageId);
-                    if (!originalMessage) {
-                        // Original message no longer exists, remove from fireboard
-                        await this.removeFireboardEntryCompletely(entry);
+                    if (!originalMessage) {                        // Original message no longer exists, remove from fireboard
+                        await this.removeFireboardEntryCompletely(entry, 'original message deleted');
                         removed++;
                         continue;
                     }
@@ -562,10 +561,8 @@ class Fireboard {
 
             // Check if message still qualifies (ignoring the "already exists" check)
             const validReactions = await this.getValidReactions(message, this.settings.excludeAuthorReactions);
-            const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
-
-            if (totalValidReactions < this.settings.threshold) {
-                await this.removeFireboardEntryCompletely(entry);
+            const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0); if (totalValidReactions < this.settings.threshold) {
+                await this.removeFireboardEntryCompletely(entry, 'below threshold');
                 console.log(`Removed message ${message.id} from fireboard (below threshold)`);
             }
         } catch (error) {
@@ -596,28 +593,31 @@ class Fireboard {
         } catch (error) {
             console.error('Error updating existing fireboard entry:', error);
         }
-    }
-
-    /**
+    }    /**
      * Completely remove a fireboard entry (both message and database record)
      * @param {FireboardEntry} entry - The database entry to remove
+     * @param {string} reason - Reason for removal (optional, for logging)
      */
-    async removeFireboardEntryCompletely(entry) {
+    async removeFireboardEntryCompletely(entry, reason = 'threshold not met') {
         try {
+            console.log(`Removing fireboard entry for message ${entry.messageId} (${reason})`);
+
             // Try to delete the fireboard message
             try {
                 const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
                 if (fireboardChannel) {
                     const fireboardMessage = await fireboardChannel.messages.fetch(entry.fireboardMessageId);
                     await fireboardMessage.delete();
+                    console.log(`Deleted fireboard message ${entry.fireboardMessageId}`);
                 }
             } catch (error) {
                 // Message might already be deleted, that's fine
-                console.log(`Fireboard message ${entry.fireboardMessageId} not found for deletion`);
+                console.log(`Fireboard message ${entry.fireboardMessageId} not found for deletion (may already be deleted)`);
             }
 
             // Remove from database
             await entry.destroy();
+            console.log(`Removed database entry for message ${entry.messageId}`);
         } catch (error) {
             console.error('Error removing fireboard entry completely:', error);
         }
@@ -674,6 +674,35 @@ class Fireboard {
                 threshold: this.settings.threshold,
                 enabled: this.settings.enabled
             };
+        }
+    }
+
+    /**
+     * Handle message deletions for fireboard tracking
+     * @param {Message} message - The deleted message object
+     */
+    async handleMessageDelete(message) {
+        try {
+            if (!this.settings.enabled) {
+                return;
+            }
+
+            console.log(`\n=== Message Deleted ===`);
+            console.log(`Message ID: ${message.id}`);
+            console.log(`Checking for fireboard entry...`);
+
+            // Check if this message was on the fireboard
+            const entry = await this.getFireboardEntry(message.id); if (entry) {
+                console.log(`Found fireboard entry, removing from fireboard...`);
+                await this.removeFireboardEntryCompletely(entry, 'original message deleted');
+                console.log(`Successfully removed fireboard entry for deleted message ${message.id}`);
+            } else {
+                console.log(`No fireboard entry found for deleted message ${message.id}`);
+            }
+
+            console.log(`======================\n`);
+        } catch (error) {
+            console.error('Error handling message delete for fireboard:', error);
         }
     }
 
