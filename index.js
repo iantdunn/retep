@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Partials, GatewayIntentBits } = require('discord.js');
 const { discordToken } = require('./config.js');
+const { initializeDatabase } = require('./database');
 
 // Create a new client instance
 const client = new Client({
@@ -46,5 +47,12 @@ for (const file of eventFiles) {
     }
 }
 
-// Log in to Discord with your client's token
-client.login(discordToken);
+// Initialize database before logging in
+async function startBot() {
+    await initializeDatabase();
+
+    // Log in to Discord with your client's token
+    client.login(discordToken);
+}
+
+startBot();

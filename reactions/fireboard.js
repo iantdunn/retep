@@ -1,13 +1,15 @@
-const { validReactions, reactionSettings } = require('../config');
+const { validReactions, fireboardSettings } = require('../config');
+const { FireboardEntry } = require('../database');
 
 /**
  * Handles fireboard functionality - tracking and logging reactions on messages
  * This system tracks valid reactions and provides statistics
  */
 class Fireboard {
+
     constructor(client) {
         this.client = client;
-        this.settings = reactionSettings;
+        this.settings = fireboardSettings;
         this.validReactions = validReactions;
         this.fireboardEntries = new Map(); // Store fireboard entries for tracking
     }
@@ -107,10 +109,10 @@ class Fireboard {
 
             console.log(`==================================\n`);
 
-            // TODO: Add fireboard functionality here
-            // - Check if message meets threshold for fireboard
-            // - Send to fireboard channel
-            // - Update existing fireboard entries
+            // Check if message qualifies for fireboard
+            if (action === 'add' && await this.messageQualifiesForFireboard(message)) {
+                await this.addToFireboard(message);
+            }
 
         } catch (error) {
             console.error('Error processing reaction tracking:', error);
@@ -161,30 +163,102 @@ class Fireboard {
      */
     getValidReactionsList() {
         return [...this.validReactions];
+    }
+
+    /**
+     * Check if a message is already on the fireboard
+     * @param {string} messageId - The Discord message ID
+     * @returns {Promise<FireboardEntry|null>} - The fireboard entry or null
+     */
+    async getFireboardEntry(messageId) {
+        try {
+            return await FireboardEntry.findOne({
+                where: { messageId }
+            });
+        } catch (error) {
+            console.error('Error getting fireboard entry:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Create a new fireboard entry in the database
+     * @param {string} messageId - The original message ID
+     * @param {string} fireboardMessageId - The fireboard message ID
+     * @param {string} authorId - The original message author ID
+     * @returns {Promise<FireboardEntry|null>} - The created entry or null
+     */
+    async createFireboardEntry(messageId, fireboardMessageId, authorId) {
+        try {
+            return await FireboardEntry.create({
+                messageId,
+                fireboardMessageId,
+                authorId
+            });
+        } catch (error) {
+            console.error('Error creating fireboard entry:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Delete a fireboard entry from the database
+     * @param {string} messageId - The original message ID
+     * @returns {Promise<boolean>} - Success status
+     */
+    async deleteFireboardEntry(messageId) {
+        try {
+            const result = await FireboardEntry.destroy({
+                where: { messageId }
+            });
+            return result > 0;
+        } catch (error) {
+            console.error('Error deleting fireboard entry:', error);
+            return false;
+        }
     }    /**
      * Check if a message meets the threshold for fireboard
      * @param {Message} message - The Discord message object
      * @returns {boolean} - Whether the message should be on the fireboard
      */
     async messageQualifiesForFireboard(message) {
-        // TODO: Implement fireboard qualification logic
-        // - Check minimum reaction count
-        // - Check if already on fireboard
-        // - Check channel restrictions
-        return false;
-    }
+        try {
+            if (!this.settings.enabled) return false;
 
-    /**
+            // Check if already on fireboard
+            const existingEntry = await this.getFireboardEntry(message.id);
+            if (existingEntry) return false; // Already on fireboard
+
+            // Get valid reactions count
+            const validReactions = await this.getValidReactions(message, this.settings.excludeAuthorReactions);
+            const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
+
+            return totalValidReactions >= this.settings.threshold;
+        } catch (error) {
+            console.error('Error checking fireboard qualification:', error);
+            return false;
+        }
+    }    /**
      * Add a message to the fireboard
      * @param {Message} message - The Discord message object
      */
     async addToFireboard(message) {
         try {
-            // TODO: Implement fireboard posting logic
-            // - Create embed with message content
-            // - Post to fireboard channel
-            // - Store fireboard entry for updates
-            console.log(`Would add message ${message.id} to fireboard`);
+            const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
+            if (!fireboardChannel) {
+                console.error('Fireboard channel not found');
+                return;
+            }
+
+            // Create basic fireboard message (you can enhance this later)
+            const fireboardMessage = await fireboardChannel.send({
+                content: `🔥 **Fireboard Entry** 🔥\nOriginal message by <@${message.author.id}> in <#${message.channel.id}>\n\n${message.content || '*No text content*'}\n\n[Jump to message](${message.url})`
+            });
+
+            // Save to database
+            await this.createFireboardEntry(message.id, fireboardMessage.id, message.author.id);
+
+            console.log(`Added message ${message.id} to fireboard as message ${fireboardMessage.id}`);
         } catch (error) {
             console.error('Error adding message to fireboard:', error);
         }
