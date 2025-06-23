@@ -185,7 +185,12 @@ async function handleAdd(interaction) {
         // Ensure message data is fresh
         const { ReactionUtils } = require('../../reactions/utils/reactionUtils');
         await ReactionUtils.safelyFetchMessage(message);
-        await ReactionUtils.safelyFetchReactions(message);        // Get valid reactions using fireboard's public method        const validReactions = await fireboard.getValidReactions(message, true); // Use setting default for exclusion
+        await ReactionUtils.safelyFetchReactions(message);
+
+        // Get valid reactions using fireboard's public method        
+        const validReactions = await fireboard.getValidReactions(message, true);
+
+        // Use setting default for exclusion
         const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
 
         if (totalValidReactions < fireboard.settings.threshold) {
