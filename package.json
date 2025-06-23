@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node .",
     "lint": "eslint .",
-    "deployCommands": "node deploy-commands.js"
+    "deployCommands": "node scripts/deploy-commands.js"
   },
   "dependencies": {
     "discord.js": "^14.19.3",
