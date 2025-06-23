@@ -7,13 +7,8 @@ module.exports = {
     discordGuildId: 'DISCORD_GUILD_ID',
 
     validReactions: [
-        '🔥', '💯', '💀',
+        '🔥', '💯', '💀', '😂',
     ],
-
-    reactionSettings: {
-        channelId: 'CHANNEL_ID', // retep-training
-        excludeAuthorReactions: true
-    },
 
     welcomeSettings: {
         channelId: 'CHANNEL_ID', // hello-goodbye
@@ -28,5 +23,12 @@ module.exports = {
         roleEmojis: {
             '💀': 'ROLE_ID',
         }
+    }
+
+    fireboardSettings: {
+        channelId: 'CHANNEL_ID',
+        enabled: true,
+        threshold: 3, // Minimum valid reactions to appear on fireboard
+        excludeAuthorReactions: true,
     }
 };

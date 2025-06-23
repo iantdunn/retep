@@ -248,6 +248,47 @@ class Fireboard {
             });
         }
     }
+
+    /**
+     * Get valid reactions for a message (public method)
+     * @param {Message} message - The Discord message object
+     * @param {boolean} excludeAuthor - Whether to exclude author reactions from count
+     * @returns {Promise<Array>} - Array of valid reaction objects
+     */
+    async getValidReactions(message, excludeAuthor = null) {
+        // Use setting if not explicitly specified
+        const shouldExcludeAuthor = excludeAuthor !== null ? excludeAuthor : this.settings.excludeAuthorReactions;
+
+        const messageValidReactions = [];
+
+        for (const [emoji, reaction] of message.reactions.cache) {
+            if (this._isValidReaction(emoji)) {
+                await reaction.users.fetch();
+                let count = reaction.count;
+
+                if (shouldExcludeAuthor &&
+                    message.author &&
+                    reaction.users.cache.has(message.author.id)) {
+                    count -= 1;
+                }
+
+                messageValidReactions.push({
+                    emoji: emoji,
+                    count: count
+                });
+            }
+        }
+
+        return messageValidReactions;
+    }
+
+    /**
+     * Get list of valid reactions (public method)
+     * @returns {Array} - Array of valid reaction strings
+     */
+    getValidReactionsList() {
+        return [...this.validReactions];
+    }
 }
 
 module.exports = { Fireboard };
