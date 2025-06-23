@@ -64,6 +64,42 @@ class ReactionHandler {
             console.error('Error handling reaction remove:', error);
         }
     }
+
+    /**
+     * Handle message deletions
+     * @param {Message} message - The deleted message
+     */
+    async handleMessageDelete(message) {
+        try {
+            await this.fireboard.handleMessageDelete(message);
+        } catch (error) {
+            console.error('Error handling message delete:', error);
+        }
+    }
+
+    /**
+     * Get statistics from all reaction systems
+     * @returns {Promise<Object>} - Combined statistics
+     */
+    async getStats() {
+        try {
+            const fireboardStats = await this.fireboard.getStats();
+
+            return {
+                fireboard: fireboardStats,
+                reactionRoles: {
+                    enabled: this.reactionRoles.settings.enabled,
+                    rolesConfigured: Object.keys(this.reactionRoles.settings.roleEmojis).length
+                }
+            };
+        } catch (error) {
+            console.error('Error getting reaction handler stats:', error);
+            return {
+                fireboard: { enabled: false, totalEntries: 0 },
+                reactionRoles: { enabled: false, rolesConfigured: 0 }
+            };
+        }
+    }
 }
 
 module.exports = { ReactionHandler };
