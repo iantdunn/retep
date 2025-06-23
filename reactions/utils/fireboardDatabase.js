@@ -25,9 +25,10 @@ class FireboardDatabase {
      * @param {string} messageId - The original message ID
      * @param {string} fireboardMessageId - The fireboard message ID
      * @param {string} authorId - The original message author ID
+     * @param {number} validReactionCount - The total count of valid reactions
      * @returns {Promise<FireboardEntry|null>} - The created entry or null
      */
-    static async createEntry(messageId, fireboardMessageId, authorId) {
+    static async createEntry(messageId, fireboardMessageId, authorId, validReactionCount = 0) {
         try {
             // Use findOrCreate to handle race conditions
             const [entry, created] = await FireboardEntry.findOrCreate({
@@ -35,7 +36,8 @@ class FireboardDatabase {
                 defaults: {
                     messageId,
                     fireboardMessageId,
-                    authorId
+                    authorId,
+                    validReactionCount
                 }
             });
 
@@ -173,6 +175,82 @@ class FireboardDatabase {
             return entry !== null;
         } catch (error) {
             console.error('Error checking if fireboard entry exists:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Update the valid reaction count for a fireboard entry
+     * @param {string} messageId - The original message ID
+     * @param {number} validReactionCount - The new valid reaction count
+     * @returns {Promise<boolean>} - Success status
+     */
+    static async updateValidReactionCount(messageId, validReactionCount) {
+        try {
+            const [updatedRowsCount] = await FireboardEntry.update(
+                { validReactionCount },
+                { where: { messageId } }
+            );
+            return updatedRowsCount > 0;
+        } catch (error) {
+            console.error('Error updating valid reaction count:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get the current valid reaction count for an entry
+     * @param {string} messageId - The message ID to check
+     * @returns {Promise<number|null>} - The current count or null if not found
+     */
+    static async getValidReactionCount(messageId) {
+        try {
+            const entry = await this.getEntry(messageId);
+            return entry ? entry.validReactionCount : null;
+        } catch (error) {
+            console.error('Error getting valid reaction count:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Increment the valid reaction count for an entry
+     * @param {string} messageId - The message ID
+     * @param {number} increment - The amount to increment by (default 1)
+     * @returns {Promise<boolean>} - Success status
+     */
+    static async incrementValidReactionCount(messageId, increment = 1) {
+        try {
+            const [updatedRowsCount] = await FireboardEntry.update(
+                {
+                    validReactionCount: require('sequelize').literal(`validReactionCount + ${increment}`)
+                },
+                { where: { messageId } }
+            );
+            return updatedRowsCount > 0;
+        } catch (error) {
+            console.error('Error incrementing valid reaction count:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Decrement the valid reaction count for an entry
+     * @param {string} messageId - The message ID
+     * @param {number} decrement - The amount to decrement by (default 1)
+     * @returns {Promise<boolean>} - Success status
+     */
+    static async decrementValidReactionCount(messageId, decrement = 1) {
+        try {
+            const [updatedRowsCount] = await FireboardEntry.update(
+                {
+                    validReactionCount: require('sequelize').literal(`CASE WHEN validReactionCount >= ${decrement} THEN validReactionCount - ${decrement} ELSE 0 END`)
+                },
+                { where: { messageId } }
+            );
+            return updatedRowsCount > 0;
+        } catch (error) {
+            console.error('Error decrementing valid reaction count:', error);
             return false;
         }
     }

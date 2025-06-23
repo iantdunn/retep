@@ -25,7 +25,7 @@ async function testConnection() {
 async function initializeDatabase() {
     try {
         await testConnection();
-        await sequelize.sync();
+        await sequelize.sync({ alter: true }); // Use alter to add new columns
         console.log('Database tables created successfully.');
     } catch (error) {
         console.error('Error initializing database:', error);

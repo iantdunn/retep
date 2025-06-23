@@ -35,13 +35,15 @@ class FireboardMessageManager {
 
             // Generate and send the fireboard embed
             const embed = EmbedUtils.createFireboardEmbed(message, validReactions);
-            const fireboardMessage = await fireboardChannel.send({ embeds: [embed] });
+            const fireboardMessage = await fireboardChannel.send({ embeds: [embed] });            // Calculate total valid reaction count
+            const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
 
             // Save to database
             const entry = await FireboardDatabase.createEntry(
                 message.id,
                 fireboardMessage.id,
-                message.author.id
+                message.author.id,
+                totalValidReactionCount
             );
 
             if (entry) {
@@ -78,7 +80,13 @@ class FireboardMessageManager {
                 return true;
             }
 
+            // Update the fireboard message
             await this._updateFireboardMessage(originalMessage, fireboardMessage, validReactions);
+
+            // Update the valid reaction count in the database
+            const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
+            await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
+
             return true;
         } catch (error) {
             console.error('Error updating existing fireboard entry:', error);
@@ -174,9 +182,13 @@ class FireboardMessageManager {
             const embed = EmbedUtils.createFireboardEmbed(originalMessage, validReactions);
             const newFireboardMessage = await fireboardChannel.send({ embeds: [embed] });
 
-            // Update the database with the new fireboard message ID
+            // Calculate total valid reaction count
+            const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
+
+            // Update the database with the new fireboard message ID and valid reaction count
             await FireboardDatabase.updateEntry(entry.messageId, {
-                fireboardMessageId: newFireboardMessage.id
+                fireboardMessageId: newFireboardMessage.id,
+                validReactionCount: totalValidReactionCount
             });
 
             console.log(`Recreated fireboard entry for message ${originalMessage.id}`);
@@ -236,6 +248,11 @@ class FireboardMessageManager {
         // Update the existing fireboard message
         const validReactions = await this._getValidReactions(originalMessage);
         await this._updateFireboardMessage(originalMessage, fireboardMessage, validReactions);
+
+        // Update the valid reaction count in the database
+        const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
+        await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
+
         return 'refreshed';
     }
 

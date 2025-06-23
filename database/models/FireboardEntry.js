@@ -24,6 +24,12 @@ module.exports = (sequelize) => {
             allowNull: false,
             comment: 'Discord user ID of the original message author',
         },
+        validReactionCount: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+            comment: 'Total count of valid reactions on the original message',
+        },
     }, {
         tableName: 'fireboard_entries',
         timestamps: true, // Adds createdAt and updatedAt
