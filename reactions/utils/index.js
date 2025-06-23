@@ -3,5 +3,6 @@ module.exports = {
     ConfigManager: require('./configManager').ConfigManager,
     EmbedUtils: require('./embedUtils').EmbedUtils,
     ReactionUtils: require('./reactionUtils').ReactionUtils,
-    FireboardDatabase: require('./fireboardDatabase').FireboardDatabase
+    FireboardDatabase: require('./fireboardDatabase').FireboardDatabase,
+    ValidReactionCalculator: require('./validReactionCalculator').ValidReactionCalculator
 };

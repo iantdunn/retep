@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
+const { ValidReactionCalculator } = require('../../reactions/utils/validReactionCalculator');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -81,7 +82,7 @@ async function handleStats(interaction) {
         }
 
         const validReactionsIncludingAuthor = await fireboard.getValidReactions(message, false);
-        const totalValidReactions = await validReactionsIncludingAuthor.reduce((acc, r) => acc + r.count, 0);
+        const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactionsIncludingAuthor);
         const validReactionsExcludingAuthor = await fireboard.getValidReactions(message, true);
 
         // Create embed
@@ -93,7 +94,7 @@ async function handleStats(interaction) {
                 { name: 'Author', value: `${message.author.tag}` },
                 { name: 'Total Reactions', value: totalReactions.toString() },
                 { name: 'Valid Reactions', value: totalValidReactions.toString(), inline: true },
-                { name: 'Valid (No Self-React)', value: validReactionsExcludingAuthor.reduce((acc, r) => acc + r.count, 0).toString(), inline: true },
+                { name: 'Valid (No Self-React)', value: ValidReactionCalculator.calculateTotalCount(validReactionsExcludingAuthor).toString(), inline: true },
                 { name: 'Message Content', value: message.content.length > 0 ? message.content.substring(0, 100) + (message.content.length > 100 ? '...' : '') : '*No text content*', inline: false }
             ]);
 
@@ -184,9 +185,8 @@ async function handleAdd(interaction) {
         // Ensure message data is fresh
         const { ReactionUtils } = require('../../reactions/utils/reactionUtils');
         await ReactionUtils.safelyFetchMessage(message);
-        await ReactionUtils.safelyFetchReactions(message);        // Get valid reactions using fireboard's public method
-        const validReactions = await fireboard.getValidReactions(message, true); // Use setting default for exclusion
-        const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
+        await ReactionUtils.safelyFetchReactions(message);        // Get valid reactions using fireboard's public method        const validReactions = await fireboard.getValidReactions(message, true); // Use setting default for exclusion
+        const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
 
         if (totalValidReactions < fireboard.settings.threshold) {
             return await interaction.editReply({

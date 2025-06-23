@@ -1,5 +1,6 @@
 const { validReactions, fireboardSettings } = require('../config');
 const { ReactionUtils } = require('./utils/reactionUtils');
+const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { FireboardMessageManager } = require('./fireboardMessageManager');
 
@@ -165,7 +166,7 @@ class Fireboard {
      * @private
      */
     async _handleFireboardQualification(message, validReactions, action) {
-        const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
+        const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
         const existingEntry = await FireboardDatabase.getEntry(message.id);
 
         if (totalValidReactions >= this.settings.threshold) {
@@ -190,27 +191,11 @@ class Fireboard {
      * @private
      */
     async _getValidReactions(message) {
-        const messageValidReactions = [];
-
-        for (const [emoji, reaction] of message.reactions.cache) {
-            if (this._isValidReaction(emoji)) {
-                await reaction.users.fetch();
-                let count = reaction.count;
-
-                if (this.settings.excludeAuthorReactions &&
-                    message.author &&
-                    reaction.users.cache.has(message.author.id)) {
-                    count -= 1;
-                }
-
-                messageValidReactions.push({
-                    emoji: emoji,
-                    count: count
-                });
-            }
-        }
-
-        return messageValidReactions;
+        return await ValidReactionCalculator.calculateValidReactions(
+            message,
+            this.validReactions,
+            this.settings.excludeAuthorReactions
+        );
     }
 
     /**
@@ -233,7 +218,7 @@ class Fireboard {
      */
     _logReactionChange(reaction, user, action, validReactions) {
         const totalReactions = reaction.message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
-        const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
+        const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
 
         ReactionUtils.logReactionAction(action, reaction, user, {
             messageAuthor: reaction.message.author,
@@ -259,27 +244,11 @@ class Fireboard {
         // Use setting if not explicitly specified
         const shouldExcludeAuthor = excludeAuthor !== null ? excludeAuthor : this.settings.excludeAuthorReactions;
 
-        const messageValidReactions = [];
-
-        for (const [emoji, reaction] of message.reactions.cache) {
-            if (this._isValidReaction(emoji)) {
-                await reaction.users.fetch();
-                let count = reaction.count;
-
-                if (shouldExcludeAuthor &&
-                    message.author &&
-                    reaction.users.cache.has(message.author.id)) {
-                    count -= 1;
-                }
-
-                messageValidReactions.push({
-                    emoji: emoji,
-                    count: count
-                });
-            }
-        }
-
-        return messageValidReactions;
+        return await ValidReactionCalculator.calculateValidReactions(
+            message,
+            this.validReactions,
+            shouldExcludeAuthor
+        );
     }
 
     /**

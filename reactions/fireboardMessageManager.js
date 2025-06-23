@@ -1,5 +1,6 @@
 const { EmbedUtils } = require('./utils/embedUtils');
 const { ReactionUtils } = require('./utils/reactionUtils');
+const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
 
 /**
@@ -36,7 +37,7 @@ class FireboardMessageManager {
             // Generate and send the fireboard embed
             const embed = EmbedUtils.createFireboardEmbed(message, validReactions);
             const fireboardMessage = await fireboardChannel.send({ embeds: [embed] });            // Calculate total valid reaction count
-            const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
+            const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
 
             // Save to database
             const entry = await FireboardDatabase.createEntry(
@@ -84,7 +85,7 @@ class FireboardMessageManager {
             await this._updateFireboardMessage(originalMessage, fireboardMessage, validReactions);
 
             // Update the valid reaction count in the database
-            const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
+            const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
             await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
 
             return true;
@@ -179,11 +180,10 @@ class FireboardMessageManager {
             const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
             if (!fireboardChannel) return;
 
-            const embed = EmbedUtils.createFireboardEmbed(originalMessage, validReactions);
-            const newFireboardMessage = await fireboardChannel.send({ embeds: [embed] });
+            const embed = EmbedUtils.createFireboardEmbed(originalMessage, validReactions); const newFireboardMessage = await fireboardChannel.send({ embeds: [embed] });
 
             // Calculate total valid reaction count
-            const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
+            const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
 
             // Update the database with the new fireboard message ID and valid reaction count
             await FireboardDatabase.updateEntry(entry.messageId, {
@@ -250,7 +250,7 @@ class FireboardMessageManager {
         await this._updateFireboardMessage(originalMessage, fireboardMessage, validReactions);
 
         // Update the valid reaction count in the database
-        const totalValidReactionCount = validReactions.reduce((acc, r) => acc + r.count, 0);
+        const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
         await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
 
         return 'refreshed';
@@ -290,27 +290,11 @@ class FireboardMessageManager {
      */
     async _getValidReactions(message) {
         const { validReactions } = require('../config');
-        const messageValidReactions = [];
-
-        for (const [emoji, reaction] of message.reactions.cache) {
-            if (validReactions.includes(emoji)) {
-                await reaction.users.fetch();
-                let count = reaction.count;
-
-                if (this.settings.excludeAuthorReactions &&
-                    message.author &&
-                    reaction.users.cache.has(message.author.id)) {
-                    count -= 1;
-                }
-
-                messageValidReactions.push({
-                    emoji: emoji,
-                    count: count
-                });
-            }
-        }
-
-        return messageValidReactions;
+        return await ValidReactionCalculator.calculateValidReactions(
+            message,
+            validReactions,
+            this.settings.excludeAuthorReactions
+        );
     }
 }
 
