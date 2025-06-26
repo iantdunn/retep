@@ -6,27 +6,28 @@ const { createReactionRolesEmbed } = require('../utils/embeds');
 module.exports.ReactionRoles = class {
     constructor(client) {
         this.client = client;
-        this.settings = reactionRoleSettings;
     }
 
     async initialize() {
         console.log('Initializing Reaction Roles...');
 
-        if (!this.settings.enabled) {
+        if (!reactionRoleSettings.enabled) {
             console.log('Reaction roles are disabled in config');
             return;
         }
 
-        if (Object.keys(this.settings.roleEmojis).length === 0) {
+        if (Object.keys(reactionRoleSettings.roleEmojis).length === 0) {
             console.log('No reaction role mappings configured');
             return;
         }
 
-        const channel = await this.client.channels.fetch(this.settings.channelId);
+        const channel = await this.client.channels.fetch(reactionRoleSettings.channelId);
         if (!channel) {
-            console.error(`Cannot find channel with ID: ${this.settings.channelId}`);
+            console.error(`Cannot find channel with ID: ${reactionRoleSettings.channelId}`);
             return;
-        } let message = await this._getOrCreateMessage(channel);
+        }
+
+        let message = await this._getOrCreateMessage(channel);
         if (message) {
             await this._manageMessageReactions(message);
         }
@@ -44,14 +45,14 @@ module.exports.ReactionRoles = class {
 
     async _handleRoleAction(reaction, user, action) {
         // Quick checks for early exit
-        if (!this.settings.enabled ||
-            reaction.message.id !== this.settings.messageId ||
-            ReactionUtils.isBot(user)) {
-            return this.settings.enabled && reaction.message.id === this.settings.messageId;
+        if (!reactionRoleSettings.enabled ||
+            reaction.message.id !== reactionRoleSettings.messageId ||
+            user.bot) { // If user is bot, ignore
+            return reactionRoleSettings.enabled && reaction.message.id === reactionRoleSettings.messageId;
         }
 
         const emoji = reaction.emoji.toString();
-        const roleId = this.settings.roleEmojis[emoji];
+        const roleId = reactionRoleSettings.roleEmojis[emoji];
 
         if (!roleId) {
             console.log(`No role mapping found for emoji: ${emoji}`);
@@ -102,21 +103,22 @@ module.exports.ReactionRoles = class {
 
     async _getOrCreateMessage(channel) {
         // Try to fetch existing message
-        if (this.settings.messageId) {
+        if (reactionRoleSettings.messageId) {
             try {
-                const message = await channel.messages.fetch(this.settings.messageId);
-                console.log(`Found existing reaction role message: ${this.settings.messageId}`);
+                const message = await channel.messages.fetch(reactionRoleSettings.messageId);
+                console.log(`Found existing reaction role message: ${reactionRoleSettings.messageId}`);
                 return message;
             } catch (error) {
-                console.log(`Could not fetch message with ID ${this.settings.messageId}, will create new one`);
-                this.settings.messageId = null;
+                console.log(`Could not fetch message with ID ${reactionRoleSettings.messageId}, will create new one`);
+                reactionRoleSettings.messageId = null;
             }
         }
 
         // Create new message
-        const message = await this._createMessage(channel);
+        const embed = createReactionRolesEmbed(reactionRoleSettings.roleEmojis);
+        const message = await channel.send({ embeds: [embed] });
         if (message) {
-            this.settings.messageId = message.id;
+            reactionRoleSettings.messageId = message.id; // TODO is this call needed?
             updateReactionRoleMessageId(message.id);
             console.log(`Created new reaction role message: ${message.id}`);
         }
@@ -124,24 +126,9 @@ module.exports.ReactionRoles = class {
         return message;
     }
 
-    async _createMessage(channel) {
-        const embed = createReactionRolesEmbed(this.settings.roleEmojis);
-        return await channel.send({ embeds: [embed] });
-    }
-
     async _manageMessageReactions(message) {
         // Clean up old reactions first
-        await this._cleanupOldReactions(message);
-
-        // Update the embed
-        await this._updateMessageEmbed(message);
-
-        // Add new reactions
-        await this._addMissingReactions(message);
-    }
-
-    async _cleanupOldReactions(message) {
-        const configEmojis = Object.keys(this.settings.roleEmojis);
+        const configEmojis = Object.keys(reactionRoleSettings.roleEmojis);
         const reactionsToRemove = [];
 
         for (const [emoji, reaction] of message.reactions.cache) {
@@ -156,21 +143,18 @@ module.exports.ReactionRoles = class {
 
         for (const reaction of reactionsToRemove) {
             await ReactionUtils.removeReaction(reaction);
-            await ReactionUtils.delay();
         }
-    }
 
-    async _addMissingReactions(message) {
-        for (const emojiStr of Object.keys(this.settings.roleEmojis)) {
+        // Update the embed
+        const embed = createReactionRolesEmbed(reactionRoleSettings.roleEmojis);
+        await message.edit({ embeds: [embed] });
+        console.log('Updated reaction roles embed with current config');
+
+        // Add new reactions
+        for (const emojiStr of Object.keys(reactionRoleSettings.roleEmojis)) {
             if (!ReactionUtils.reactionExists(message, emojiStr)) {
                 await ReactionUtils.addReaction(message, emojiStr);
             }
         }
-    }
-
-    async _updateMessageEmbed(message) {
-        const embed = createReactionRolesEmbed(this.settings.roleEmojis);
-        await message.edit({ embeds: [embed] });
-        console.log('Updated reaction roles embed with current config');
     }
 }
