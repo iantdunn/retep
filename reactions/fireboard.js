@@ -4,10 +4,6 @@ const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { FireboardMessageManager } = require('./fireboardMessageManager');
 
-/**
- * Handles fireboard functionality - tracking and logging reactions on messages
- * Focused on core reaction processing logic
- */
 class Fireboard {
     constructor(client) {
         this.client = client;
@@ -17,42 +13,24 @@ class Fireboard {
         this.processingMessages = new Set(); // Track messages currently being processed
     }
 
-    /**
-     * Initialize fireboard system on bot startup
-     */
     async initialize() {
-        try {
-            console.log('Initializing Fireboard...');
+        console.log('Initializing Fireboard...');
 
-            if (!this.settings.enabled) {
-                console.log('Reaction tracking (Fireboard) is disabled in config');
-                return;
-            }
-
-            // Refresh all fireboard entries on startup
-            await this.messageManager.refreshAllEntries();
-
-            console.log('Fireboard initialized successfully');
-        } catch (error) {
-            console.error('Error initializing Fireboard:', error);
+        if (!this.settings.enabled) {
+            console.log('Reaction tracking (Fireboard) is disabled in config');
+            return;
         }
+
+        // Refresh all fireboard entries on startup
+        await this.messageManager.refreshAllEntries();
+
+        console.log('Fireboard initialized successfully');
     }
 
-    /**
-     * Handle reaction additions for fireboard tracking
-     * @param {MessageReaction} reaction - The reaction object
-     * @param {User} user - The user who reacted
-     * @returns {boolean} - Always returns false since fireboard doesn't block other handlers
-     */
     async handleReactionAdd(reaction, user) {
-        try {
-            if (!this.settings.enabled) return false;
-            await this._processReactionChange(reaction, user, 'add');
-            return false; // Don't block other handlers
-        } catch (error) {
-            console.error('Error handling fireboard reaction add:', error);
-            return false;
-        }
+        if (!this.settings.enabled) return false;
+        await this._processReactionChange(reaction, user, 'add');
+        return false; // Don't block other handlers
     }
 
     /**
@@ -62,14 +40,9 @@ class Fireboard {
      * @returns {boolean} - Always returns false since fireboard doesn't block other handlers
      */
     async handleReactionRemove(reaction, user) {
-        try {
-            if (!this.settings.enabled) return false;
-            await this._processReactionChange(reaction, user, 'remove');
-            return false; // Don't block other handlers
-        } catch (error) {
-            console.error('Error handling fireboard reaction remove:', error);
-            return false;
-        }
+        if (!this.settings.enabled) return false;
+        await this._processReactionChange(reaction, user, 'remove');
+        return false; // Don't block other handlers
     }
 
     /**
@@ -77,26 +50,22 @@ class Fireboard {
      * @param {Message} message - The deleted message object
      */
     async handleMessageDelete(message) {
-        try {
-            if (!this.settings.enabled) return;
+        if (!this.settings.enabled) return;
 
-            console.log(`\n=== Message Deleted ===`);
-            console.log(`Message ID: ${message.id}`);
-            console.log(`Checking for fireboard entry...`);
+        console.log(`\n=== Message Deleted ===`);
+        console.log(`Message ID: ${message.id}`);
+        console.log(`Checking for fireboard entry...`);
 
-            const entry = await FireboardDatabase.getEntry(message.id);
-            if (entry) {
-                console.log(`Found fireboard entry, removing from fireboard...`);
-                await this.messageManager.removeFireboardEntry(entry, 'original message deleted');
-                console.log(`Successfully removed fireboard entry for deleted message ${message.id}`);
-            } else {
-                console.log(`No fireboard entry found for deleted message ${message.id}`);
-            }
-
-            console.log(`======================\n`);
-        } catch (error) {
-            console.error('Error handling message delete for fireboard:', error);
+        const entry = await FireboardDatabase.getEntry(message.id);
+        if (entry) {
+            console.log(`Found fireboard entry, removing from fireboard...`);
+            await this.messageManager.removeFireboardEntry(entry, 'original message deleted');
+            console.log(`Successfully removed fireboard entry for deleted message ${message.id}`);
+        } else {
+            console.log(`No fireboard entry found for deleted message ${message.id}`);
         }
+
+        console.log(`======================\n`);
     }
 
     /**
@@ -175,24 +144,6 @@ class Fireboard {
         );
     }
 
-    /**
-     * Check if a reaction emoji is in the valid reactions list
-     * @param {string} emoji - The emoji to check
-     * @returns {boolean} - Whether the emoji is valid
-     * @private
-     */
-    _isValidReaction(emoji) {
-        return this.validReactions.includes(emoji);
-    }
-
-    /**
-     * Log reaction change details for debugging
-     * @param {MessageReaction} reaction - Reaction object
-     * @param {User} user - User who performed the action
-     * @param {string} action - 'add' or 'remove'
-     * @param {Array} validReactions - Array of valid reaction objects
-     * @private
-     */
     _logReactionChange(reaction, user, action, validReactions) {
         const totalReactions = reaction.message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
         const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
@@ -211,12 +162,6 @@ class Fireboard {
         }
     }
 
-    /**
-     * Get valid reactions for a message (public method)
-     * @param {Message} message - The Discord message object
-     * @param {boolean} excludeAuthor - Whether to exclude author reactions from count
-     * @returns {Promise<Array>} - Array of valid reaction objects
-     */
     async getValidReactions(message, excludeAuthor = null) {
         // Use setting if not explicitly specified
         const shouldExcludeAuthor = excludeAuthor !== null ? excludeAuthor : this.settings.excludeAuthorReactions;
