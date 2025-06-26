@@ -9,14 +9,7 @@ class ConfigManager {
         this.configPath = path.join(__dirname, '../../config.js');
     }
 
-    /**
-     * Update a specific field in the config file
-     * @param {string} section - Configuration section (e.g., 'reactionRoleSettings')
-     * @param {string} field - Field name (e.g., 'messageId')
-     * @param {*} value - New value
-     * @returns {boolean} - Success status
-     */
-    updateConfigField(section, field, value) {
+    _updateConfigField(section, field, value) {
         try {
             let configContent = fs.readFileSync(this.configPath, 'utf8');
 
@@ -49,7 +42,7 @@ class ConfigManager {
      * @returns {boolean} - Success status
      */
     updateReactionRoleMessageId(messageId) {
-        return this.updateConfigField('reactionRoleSettings', 'messageId', messageId);
+        return this._updateConfigField('reactionRoleSettings', 'messageId', messageId);
     }
 
     /**
@@ -72,44 +65,6 @@ class ConfigManager {
             return value.toString();
         }
         return `'${value}'`;
-    }
-
-    /**
-     * Read a specific configuration section
-     * @param {string} section - Configuration section name
-     * @returns {*} - Configuration section value
-     */
-    getConfigSection(section) {
-        try {
-            // Clear require cache to get fresh config
-            delete require.cache[require.resolve('../../config.js')];
-            const config = require('../../config.js');
-            return config[section];
-        } catch (error) {
-            console.error(`Error reading config section ${section}:`, error);
-            return null;
-        }
-    }
-
-    /**
-     * Validate that required config sections exist
-     * @param {Array<string>} requiredSections - Array of required section names
-     * @returns {boolean} - Whether all sections exist
-     */
-    validateConfig(requiredSections = []) {
-        try {
-            const config = require('../../config.js');
-            return requiredSections.every(section => {
-                const exists = config[section] !== undefined;
-                if (!exists) {
-                    console.error(`Missing required config section: ${section}`);
-                }
-                return exists;
-            });
-        } catch (error) {
-            console.error('Error validating config:', error);
-            return false;
-        }
     }
 }
 
