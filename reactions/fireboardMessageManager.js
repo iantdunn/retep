@@ -168,13 +168,13 @@ module.exports.FireboardMessageManager = class {
         } catch (error) {
             // Fireboard message doesn't exist, recreate it
             console.log(`Recreating missing fireboard message for ${entry.messageId}`);
-            const validReactions = await this._getValidReactions(originalMessage);
+            const validReactions = await calculateValidReactions(originalMessage);
             await this._recreateFireboardEntry(originalMessage, entry, validReactions);
             return 'refreshed';
         }
 
         // Update the existing fireboard message
-        const validReactions = await this._getValidReactions(originalMessage);
+        const validReactions = await calculateValidReactions(originalMessage);
         await this._updateFireboardMessage(originalMessage, fireboardMessage, validReactions);
 
         // Update the valid reaction count in the database
@@ -197,16 +197,5 @@ module.exports.FireboardMessageManager = class {
             }
         }
         return null;
-    }
-
-    /**
-     * Get valid reactions from a message
-     * @param {Message} message - Discord message
-     * @returns {Promise<Array>} - Array of valid reaction objects
-     * @private
-     */
-    async _getValidReactions(message) {
-        const { validReactions } = require('../config');
-        return await calculateValidReactions(message);
     }
 }

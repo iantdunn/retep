@@ -26,19 +26,13 @@ class ReactionUtils {
         }
     }
 
-    static emojisMatch(emoji1, emoji2) {
-        // For custom emojis, extract the ID
-        const extractId = (emoji) => {
-            const match = emoji.match(/<:.+?:(\d+)>/);
-            return match ? match[1] : emoji;
-        };
-
-        return extractId(emoji1) === extractId(emoji2);
-    }
-
     static extractEmojiId(emojiStr) {
         const match = emojiStr.match(/<:.+?:(\d+)>/);
         return match ? match[1] : emojiStr;
+    }
+
+    static emojisMatch(emoji1, emoji2) {
+        return this.extractEmojiId(emoji1) === this.extractEmojiId(emoji2);
     }
 
     static reactionExists(message, emojiStr) {
@@ -78,10 +72,6 @@ class ReactionUtils {
         }
     }
 
-    static getUserDisplayName(user) {
-        return `${user.displayName || user.username} (${user.tag})`;
-    }
-
     static validateObjects(objects) {
         const missing = [];
 
@@ -100,11 +90,11 @@ class ReactionUtils {
     static logReactionAction(action, reaction, user, additionalInfo = {}) {
         console.log(`\n=== Reaction ${action.toUpperCase()} ===`);
         console.log(`Message ID: ${reaction.message.id}`);
-        console.log(`User: ${this.getUserDisplayName(user)} (${user.id})`);
+        console.log(`User: ${user.displayName} (${user.id})`);
         console.log(`Reaction: ${reaction.emoji}`);
 
         if (additionalInfo.messageAuthor) {
-            console.log(`Message Author: ${this.getUserDisplayName(additionalInfo.messageAuthor)} (${additionalInfo.messageAuthor.id})`);
+            console.log(`Message Author: ${additionalInfo.messageAuthor.displayName} (${additionalInfo.messageAuthor.id})`);
         }
 
         if (additionalInfo.totalReactions !== undefined) {

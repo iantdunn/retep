@@ -90,7 +90,7 @@ module.exports.Fireboard = class {
             await ReactionUtils.safelyFetchMessage(message);
             await ReactionUtils.safelyFetchReactions(message);
 
-            const validReactions = await this._getValidReactions(message);
+            const validReactions = await calculateValidReactions(message);
 
             // Log the reaction change
             this._logReactionChange(reaction, user, action, validReactions);
@@ -129,16 +129,6 @@ module.exports.Fireboard = class {
         }
     }
 
-    /**
-     * Get all valid reactions from a message
-     * @param {Message} message - The Discord message object
-     * @returns {Array} - Array of valid reaction objects
-     * @private
-     */
-    async _getValidReactions(message) {
-        return await calculateValidReactions(message);
-    }
-
     _logReactionChange(reaction, user, action, validReactions) {
         const totalReactions = reaction.message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
         const totalValidReactions = calculateTotalCount(validReactions);
@@ -155,10 +145,6 @@ module.exports.Fireboard = class {
                 console.log(`  ${r.emoji}: ${r.count}`);
             });
         }
-    }
-
-    async getValidReactions(message) {
-        return await calculateValidReactions(message);
     }
 
     /**

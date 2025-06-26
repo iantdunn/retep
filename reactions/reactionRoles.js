@@ -80,22 +80,21 @@ module.exports.ReactionRoles = class {
 
     async _performRoleAction(member, role, user, action) {
         const hasRole = member.roles.cache.has(role.id);
-        const userDisplay = ReactionUtils.getUserDisplayName(user);
 
         if (action === 'add') {
             if (hasRole) {
-                console.log(`User ${userDisplay} already has role ${role.name}`);
+                console.log(`User ${user.displayName} already has role ${role.name}`);
                 return true;
             }
             await member.roles.add(role);
-            console.log(`Added role ${role.name} to ${userDisplay}`);
+            console.log(`Added role ${role.name} to ${user.displayName}`);
         } else if (action === 'remove') {
             if (!hasRole) {
-                console.log(`User ${userDisplay} doesn't have role ${role.name}`);
+                console.log(`User ${user.displayName} doesn't have role ${role.name}`);
                 return true;
             }
             await member.roles.remove(role);
-            console.log(`Removed role ${role.name} from ${userDisplay}`);
+            console.log(`Removed role ${role.name} from ${user.displayName}`);
         }
 
         return true;
