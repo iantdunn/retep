@@ -100,29 +100,6 @@ class Fireboard {
     }
 
     /**
-     * Get fireboard statistics
-     * @returns {Promise<Object>} - Statistics object
-     */
-    async getStats() {
-        try {
-            const dbStats = await FireboardDatabase.getStats();
-            return {
-                ...dbStats,
-                threshold: this.settings.threshold,
-                enabled: this.settings.enabled
-            };
-        } catch (error) {
-            console.error('Error getting fireboard stats:', error);
-            return {
-                totalEntries: 0,
-                recentEntries: 0,
-                threshold: this.settings.threshold,
-                enabled: this.settings.enabled
-            };
-        }
-    }
-
-    /**
      * Process reaction changes (add/remove) for fireboard tracking
      * @param {MessageReaction} reaction - The reaction object
      * @param {User} user - The user who reacted

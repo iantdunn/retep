@@ -77,30 +77,6 @@ class FireboardDatabase {
         }
     }
 
-    static async getStats() {
-        try {
-            const totalEntries = await FireboardEntry.count();
-            const recentEntries = await FireboardEntry.count({
-                where: {
-                    createdAt: {
-                        [require('sequelize').Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-                    }
-                }
-            });
-
-            return {
-                totalEntries,
-                recentEntries
-            };
-        } catch (error) {
-            console.error('Error getting fireboard stats:', error);
-            return {
-                totalEntries: 0,
-                recentEntries: 0
-            };
-        }
-    }
-
     static async deleteEntryObject(entry) {
         try {
             await entry.destroy();
