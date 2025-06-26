@@ -141,7 +141,8 @@ module.exports.ReactionRoles = class {
         }
 
         for (const reaction of reactionsToRemove) {
-            await ReactionUtils.removeReaction(reaction);
+            await reaction.users.remove(reaction.message.client.user);
+            console.log(`Removed reaction: ${reaction.emoji}`);
         }
 
         // Update the embed
@@ -152,7 +153,8 @@ module.exports.ReactionRoles = class {
         // Add new reactions
         for (const emojiStr of Object.keys(reactionRoleSettings.roleEmojis)) {
             if (!ReactionUtils.reactionExists(message, emojiStr)) {
-                await ReactionUtils.addReaction(message, emojiStr);
+                await message.react(emojiStr);
+                console.log(`Added reaction: ${emojiStr}`);
             }
         }
     }

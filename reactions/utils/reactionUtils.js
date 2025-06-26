@@ -45,33 +45,6 @@ class ReactionUtils {
         });
     }
 
-    static async addReaction(message, emoji) {
-        try {
-            await message.react(emoji);
-            console.log(`Added reaction: ${emoji}`);
-
-            return true;
-        } catch (error) {
-            console.error(`Failed to add reaction ${emoji}:`, error);
-            return false;
-        }
-    }
-
-    static async removeReaction(reaction, user = null) {
-        try {
-            if (user) {
-                await reaction.users.remove(user);
-            } else {
-                await reaction.users.remove(reaction.message.client.user);
-            }
-            console.log(`Removed reaction: ${reaction.emoji}`);
-            return true;
-        } catch (error) {
-            console.error(`Failed to remove reaction ${reaction.emoji}:`, error);
-            return false;
-        }
-    }
-
     static validateObjects(objects) {
         const missing = [];
 
