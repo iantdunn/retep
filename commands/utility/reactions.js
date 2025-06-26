@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
-const { ValidReactionCalculator } = require('../../reactions/utils/validReactionCalculator');
+const { calculateTotalCount } = require('../../utils/reactionUtils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -116,7 +116,7 @@ async function handleAdd(interaction) {
         const validReactions = await fireboard.getValidReactions(message, true);
 
         // Use setting default for exclusion
-        const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
+        const totalValidReactions = calculateTotalCount(validReactions);
 
         if (totalValidReactions < fireboard.settings.threshold) {
             return await interaction.editReply({

@@ -1,7 +1,7 @@
 const { ReactionUtils } = require('./utils/reactionUtils');
-const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { createFireboardEmbed } = require('../utils/embeds');
+const { calculateValidReactions, calculateTotalCount } = require('../utils/reactionUtils');
 
 module.exports.FireboardMessageManager = class {
     constructor(client, settings) {
@@ -29,7 +29,7 @@ module.exports.FireboardMessageManager = class {
         const fireboardMessage = await fireboardChannel.send({ embeds: [embed] });
 
         // Calculate total valid reaction count
-        const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
+        const totalValidReactionCount = calculateTotalCount(validReactions);
 
         // Save to database
         const entry = await FireboardDatabase.createEntry(
@@ -65,7 +65,7 @@ module.exports.FireboardMessageManager = class {
         await this._updateFireboardMessage(originalMessage, fireboardMessage, validReactions);
 
         // Update the valid reaction count in the database
-        const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
+        const totalValidReactionCount = calculateTotalCount(validReactions);
         await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
 
         return true;
@@ -132,7 +132,7 @@ module.exports.FireboardMessageManager = class {
         const newFireboardMessage = await fireboardChannel.send({ embeds: [embed] });
 
         // Calculate total valid reaction count
-        const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
+        const totalValidReactionCount = calculateTotalCount(validReactions);
 
         // Update the database with the new fireboard message ID and valid reaction count
         await FireboardDatabase.updateEntry(entry.messageId, {
@@ -178,7 +178,7 @@ module.exports.FireboardMessageManager = class {
         await this._updateFireboardMessage(originalMessage, fireboardMessage, validReactions);
 
         // Update the valid reaction count in the database
-        const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
+        const totalValidReactionCount = calculateTotalCount(validReactions);
         await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
 
         return 'refreshed';
@@ -207,10 +207,6 @@ module.exports.FireboardMessageManager = class {
      */
     async _getValidReactions(message) {
         const { validReactions } = require('../config');
-        return await ValidReactionCalculator.calculateValidReactions(
-            message,
-            validReactions,
-            this.settings.excludeAuthorReactions
-        );
+        return await calculateValidReactions(message);
     }
 }

@@ -1,14 +1,13 @@
-const { validReactions, fireboardSettings } = require('../config');
+const { fireboardSettings } = require('../config');
 const { ReactionUtils } = require('./utils/reactionUtils');
-const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { FireboardMessageManager } = require('./fireboardMessageManager');
+const { calculateValidReactions, calculateTotalCount } = require('../utils/reactionUtils');
 
 module.exports.Fireboard = class {
     constructor(client) {
         this.client = client;
         this.settings = fireboardSettings;
-        this.validReactions = validReactions;
         this.messageManager = new FireboardMessageManager(client, fireboardSettings);
         this.processingMessages = new Set(); // Track messages currently being processed
     }
@@ -112,7 +111,7 @@ module.exports.Fireboard = class {
      * @private
      */
     async _handleFireboardQualification(message, validReactions, action) {
-        const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
+        const totalValidReactions = calculateTotalCount(validReactions);
         const existingEntry = await FireboardDatabase.getEntry(message.id);
 
         if (totalValidReactions >= this.settings.threshold) {
@@ -137,16 +136,12 @@ module.exports.Fireboard = class {
      * @private
      */
     async _getValidReactions(message) {
-        return await ValidReactionCalculator.calculateValidReactions(
-            message,
-            this.validReactions,
-            this.settings.excludeAuthorReactions
-        );
+        return await calculateValidReactions(message);
     }
 
     _logReactionChange(reaction, user, action, validReactions) {
         const totalReactions = reaction.message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
-        const totalValidReactions = ValidReactionCalculator.calculateTotalCount(validReactions);
+        const totalValidReactions = calculateTotalCount(validReactions);
 
         ReactionUtils.logReactionAction(action, reaction, user, {
             messageAuthor: reaction.message.author,
@@ -162,15 +157,8 @@ module.exports.Fireboard = class {
         }
     }
 
-    async getValidReactions(message, excludeAuthor = null) {
-        // Use setting if not explicitly specified
-        const shouldExcludeAuthor = excludeAuthor !== null ? excludeAuthor : this.settings.excludeAuthorReactions;
-
-        return await ValidReactionCalculator.calculateValidReactions(
-            message,
-            this.validReactions,
-            shouldExcludeAuthor
-        );
+    async getValidReactions(message) {
+        return await calculateValidReactions(message);
     }
 
     /**
@@ -178,6 +166,6 @@ module.exports.Fireboard = class {
      * @returns {Array} - Array of valid reaction strings
      */
     getValidReactionsList() {
-        return [...this.validReactions];
+        return [...this.fireboardSettings.validReactions];
     }
 }

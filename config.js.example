@@ -2,12 +2,6 @@ module.exports = {
     "discordToken": "",
     "discordClientId": "",
     "discordGuildId": "",
-    "validReactions": [
-        "🔥",
-        "💯",
-        "💀",
-        "😂"
-    ],
     "welcomeSettings": {
         "channelId": "",
         "welcomeEnabled": true,
@@ -26,5 +20,11 @@ module.exports = {
         "enabled": true,
         "threshold": 3,
         "excludeAuthorReactions": true
+        "validReactions": [
+            "🔥",
+            "💯",
+            "💀",
+            "😂"
+        ],
     }
 };
