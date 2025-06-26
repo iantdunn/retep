@@ -1,7 +1,7 @@
 const { ReactionUtils } = require('./utils/reactionUtils');
-const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { createFireboardEmbed } = require('../utils/embeds');
 const { calculateValidReactions, calculateTotalCount } = require('../utils/reactionUtils');
+const { getEntry, createEntry, updateEntry, deleteEntryObject, getAllEntries } = require('../utils/fireboardCrud')
 
 module.exports.FireboardMessageManager = class {
     constructor(client, settings) {
@@ -11,7 +11,7 @@ module.exports.FireboardMessageManager = class {
 
     async addToFireboard(message, validReactions) {
         // Double-check if entry already exists to prevent race conditions
-        const existingEntry = await FireboardDatabase.getEntry(message.id);
+        const existingEntry = await getEntry(message.id);
         if (existingEntry) {
             console.log(`Message ${message.id} already exists on fireboard, updating instead`);
             await this.updateFireboardEntry(message, existingEntry, validReactions);
@@ -32,7 +32,7 @@ module.exports.FireboardMessageManager = class {
         const totalValidReactionCount = calculateTotalCount(validReactions);
 
         // Save to database
-        const entry = await FireboardDatabase.createEntry(
+        const entry = await createEntry(
             message.id,
             fireboardMessage.id,
             message.author.id,
@@ -66,7 +66,7 @@ module.exports.FireboardMessageManager = class {
 
         // Update the valid reaction count in the database
         const totalValidReactionCount = calculateTotalCount(validReactions);
-        await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
+        await updateEntry(originalMessage.id, { validReactionCount: totalValidReactionCount });
 
         return true;
     }
@@ -87,7 +87,7 @@ module.exports.FireboardMessageManager = class {
         }
 
         // Remove from database
-        const deleted = await FireboardDatabase.deleteEntryObject(entry);
+        const deleted = await deleteEntryObject(entry);
         if (deleted) {
             console.log(`Removed database entry for message ${entry.messageId}`);
         }
@@ -98,7 +98,7 @@ module.exports.FireboardMessageManager = class {
     async refreshAllEntries() {
         console.log('Refreshing all fireboard entries...');
 
-        const entries = await FireboardDatabase.getAllEntries();
+        const entries = await getAllEntries();
         console.log(`Found ${entries.length} fireboard entries to refresh`);
 
         const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
@@ -135,7 +135,7 @@ module.exports.FireboardMessageManager = class {
         const totalValidReactionCount = calculateTotalCount(validReactions);
 
         // Update the database with the new fireboard message ID and valid reaction count
-        await FireboardDatabase.updateEntry(entry.messageId, {
+        await updateEntry(entry.messageId, {
             fireboardMessageId: newFireboardMessage.id,
             validReactionCount: totalValidReactionCount
         });
@@ -179,7 +179,7 @@ module.exports.FireboardMessageManager = class {
 
         // Update the valid reaction count in the database
         const totalValidReactionCount = calculateTotalCount(validReactions);
-        await FireboardDatabase.updateValidReactionCount(originalMessage.id, totalValidReactionCount);
+        await updateEntry(originalMessage.id, { validReactionCount: totalValidReactionCount });
 
         return 'refreshed';
     }

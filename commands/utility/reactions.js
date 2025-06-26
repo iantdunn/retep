@@ -1,5 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { calculateTotalCount } = require('../../utils/reactionUtils');
+const { getEntry } = require('../../utils/fireboardCrud');
+
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -95,8 +97,7 @@ async function handleAdd(interaction) {
         }
 
         // Check if message is already on fireboard
-        const { FireboardDatabase } = require('../../reactions/utils/fireboardDatabase');
-        const existingEntry = await FireboardDatabase.getEntry(messageId);
+        const existingEntry = await getEntry(messageId);
         if (existingEntry) {
             return await interaction.reply({
                 content: 'This message is already on the fireboard.',

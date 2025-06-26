@@ -1,8 +1,8 @@
 const { fireboardSettings } = require('../config');
 const { ReactionUtils } = require('./utils/reactionUtils');
-const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { FireboardMessageManager } = require('./fireboardMessageManager');
 const { calculateValidReactions, calculateTotalCount } = require('../utils/reactionUtils');
+const { getEntry } = require('../utils/fireboardCrud')
 
 module.exports.Fireboard = class {
     constructor(client) {
@@ -55,7 +55,7 @@ module.exports.Fireboard = class {
         console.log(`Message ID: ${message.id}`);
         console.log(`Checking for fireboard entry...`);
 
-        const entry = await FireboardDatabase.getEntry(message.id);
+        const entry = await getEntry(message.id);
         if (entry) {
             console.log(`Found fireboard entry, removing from fireboard...`);
             await this.messageManager.removeFireboardEntry(entry, 'original message deleted');
@@ -112,7 +112,7 @@ module.exports.Fireboard = class {
      */
     async _handleFireboardQualification(message, validReactions, action) {
         const totalValidReactions = calculateTotalCount(validReactions);
-        const existingEntry = await FireboardDatabase.getEntry(message.id);
+        const existingEntry = await getEntry(message.id);
 
         if (totalValidReactions >= this.settings.threshold) {
             if (!existingEntry && action === 'add') {
