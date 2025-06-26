@@ -11,7 +11,7 @@ module.exports = {
     ],
 
     welcomeSettings: {
-        channelId: 'CHANNEL_ID', // hello-goodbye
+        channelId: 'CHANNEL_ID',
         welcomeEnabled: true,
         goodbyeEnabled: true
     },

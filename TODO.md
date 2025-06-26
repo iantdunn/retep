@@ -1,8 +1,19 @@
-# TODO
+# TODO List
+
+## 1. Refactor
+- Redo entire reactions package
+    - Remove unused methods
+    - Consolidate single/double use methods
+    - Remove classes from reactions/utils
+
+## 2. Improvements to existing features
 - GIF support
 - Nicknames instead of usernames
+- Message reply support
 - Message edit listening
 - Cross-channel message fetching (rather than providing channel ID)
+- Command to refresh an individual message
 
-# Features
+## 3. Features
 - Dynamic leaderboard
+- Scheduled reloads?

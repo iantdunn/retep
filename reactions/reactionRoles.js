@@ -1,7 +1,7 @@
 const { reactionRoleSettings } = require('../config');
 const { ConfigManager } = require('./utils/configManager');
-const { EmbedUtils } = require('./utils/embedUtils');
 const { ReactionUtils } = require('./utils/reactionUtils');
+const { createReactionRolesEmbed } = require('../utils/embeds');
 
 /**
  * Handles reaction-based role assignment
@@ -185,7 +185,7 @@ class ReactionRoles {
      */
     async _createMessage(channel) {
         try {
-            const embed = EmbedUtils.createReactionRolesEmbed(this.settings.roleEmojis);
+            const embed = createReactionRolesEmbed(this.settings.roleEmojis);
             return await channel.send({ embeds: [embed] });
         } catch (error) {
             console.error('Error creating reaction role message:', error);
@@ -259,7 +259,7 @@ class ReactionRoles {
      */
     async _updateMessageEmbed(message) {
         try {
-            const embed = EmbedUtils.createReactionRolesEmbed(this.settings.roleEmojis);
+            const embed = createReactionRolesEmbed(this.settings.roleEmojis);
             await message.edit({ embeds: [embed] });
             console.log('Updated reaction roles embed with current config');
         } catch (error) {

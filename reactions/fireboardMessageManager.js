@@ -1,7 +1,7 @@
-const { EmbedUtils } = require('./utils/embedUtils');
 const { ReactionUtils } = require('./utils/reactionUtils');
 const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
+const { createFireboardEmbed } = require('../utils/embeds');
 
 /**
  * Manages fireboard messages - creation, updates, and deletion
@@ -35,8 +35,10 @@ class FireboardMessageManager {
             }
 
             // Generate and send the fireboard embed
-            const embed = EmbedUtils.createFireboardEmbed(message, validReactions);
-            const fireboardMessage = await fireboardChannel.send({ embeds: [embed] });            // Calculate total valid reaction count
+            const embed = createFireboardEmbed(message, validReactions);
+            const fireboardMessage = await fireboardChannel.send({ embeds: [embed] });
+
+            // Calculate total valid reaction count
             const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
 
             // Save to database
@@ -180,7 +182,8 @@ class FireboardMessageManager {
             const fireboardChannel = await this.client.channels.fetch(this.settings.channelId);
             if (!fireboardChannel) return;
 
-            const embed = EmbedUtils.createFireboardEmbed(originalMessage, validReactions); const newFireboardMessage = await fireboardChannel.send({ embeds: [embed] });
+            const embed = createFireboardEmbed(originalMessage, validReactions);
+            const newFireboardMessage = await fireboardChannel.send({ embeds: [embed] });
 
             // Calculate total valid reaction count
             const totalValidReactionCount = ValidReactionCalculator.calculateTotalCount(validReactions);
@@ -206,7 +209,7 @@ class FireboardMessageManager {
      */
     async _updateFireboardMessage(originalMessage, fireboardMessage, validReactions) {
         try {
-            const embed = EmbedUtils.createFireboardEmbed(originalMessage, validReactions);
+            const embed = createFireboardEmbed(originalMessage, validReactions);
             await fireboardMessage.edit({ embeds: [embed] });
         } catch (error) {
             console.error('Error updating fireboard message:', error);
