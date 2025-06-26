@@ -1,20 +1,13 @@
 const { ReactionRoles } = require('./reactionRoles');
 const { Fireboard } = require('./fireboard');
 
-/**
- * Main reaction handler that delegates to appropriate modules
- * This is the interface that other parts of the bot will use
- */
-class ReactionHandler {
+module.exports.ReactionHandler = class {
     constructor(client) {
         this.client = client;
         this.reactionRoles = new ReactionRoles(client);
         this.fireboard = new Fireboard(client);
     }
 
-    /**
-     * Initialize all reaction systems on bot startup
-     */
     async initialize() {
         console.log('Initializing Reaction Handler...');
 
@@ -27,11 +20,6 @@ class ReactionHandler {
         }
     }
 
-    /**
-     * Main handler for reaction additions
-     * @param {MessageReaction} reaction - The reaction object
-     * @param {User} user - The user who reacted
-     */
     async handleReactionAdd(reaction, user) {
         try {
             // Try reaction roles first
@@ -46,11 +34,6 @@ class ReactionHandler {
         }
     }
 
-    /**
-     * Main handler for reaction removals
-     * @param {MessageReaction} reaction - The reaction object
-     * @param {User} user - The user who removed the reaction
-     */
     async handleReactionRemove(reaction, user) {
         try {
             // Try reaction roles first
@@ -65,10 +48,6 @@ class ReactionHandler {
         }
     }
 
-    /**
-     * Handle message deletions
-     * @param {Message} message - The deleted message
-     */
     async handleMessageDelete(message) {
         try {
             await this.fireboard.handleMessageDelete(message);
@@ -77,5 +56,3 @@ class ReactionHandler {
         }
     }
 }
-
-module.exports = { ReactionHandler };

@@ -3,7 +3,7 @@ const { updateReactionRoleMessageId } = require('../utils/configUtils');
 const { ReactionUtils } = require('./utils/reactionUtils');
 const { createReactionRolesEmbed } = require('../utils/embeds');
 
-class ReactionRoles {
+module.exports.ReactionRoles = class {
     constructor(client) {
         this.client = client;
         this.settings = reactionRoleSettings;
@@ -174,5 +174,3 @@ class ReactionRoles {
         console.log('Updated reaction roles embed with current config');
     }
 }
-
-module.exports = { ReactionRoles };

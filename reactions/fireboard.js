@@ -4,7 +4,7 @@ const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { FireboardMessageManager } = require('./fireboardMessageManager');
 
-class Fireboard {
+module.exports.Fireboard = class {
     constructor(client) {
         this.client = client;
         this.settings = fireboardSettings;
@@ -181,5 +181,3 @@ class Fireboard {
         return [...this.validReactions];
     }
 }
-
-module.exports = { Fireboard };

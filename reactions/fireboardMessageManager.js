@@ -3,7 +3,7 @@ const { ValidReactionCalculator } = require('./utils/validReactionCalculator');
 const { FireboardDatabase } = require('./utils/fireboardDatabase');
 const { createFireboardEmbed } = require('../utils/embeds');
 
-class FireboardMessageManager {
+module.exports.FireboardMessageManager = class {
     constructor(client, settings) {
         this.client = client;
         this.settings = settings;
@@ -214,5 +214,3 @@ class FireboardMessageManager {
         );
     }
 }
-
-module.exports = { FireboardMessageManager };
