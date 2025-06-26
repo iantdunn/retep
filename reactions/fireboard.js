@@ -130,7 +130,7 @@ module.exports.Fireboard = class {
     }
 
     _logReactionChange(reaction, user, action, validReactions) {
-        const totalReactions = reaction.message.reactions.cache.reduce((acc, r) => acc + r.count, 0);
+        const totalReactions = calculateTotalCount(reaction.message.reactions.cache);
         const totalValidReactions = calculateTotalCount(validReactions);
 
         ReactionUtils.logReactionAction(action, reaction, user, {

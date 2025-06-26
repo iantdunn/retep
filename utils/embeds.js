@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const { calculateTotalCount } = require('./reactionUtils');
 
 module.exports.createReactionRolesEmbed = function (roleEmojis) {
     const embed = new EmbedBuilder()
@@ -29,7 +30,7 @@ module.exports.createReactionRolesEmbed = function (roleEmojis) {
 }
 
 module.exports.createFireboardEmbed = function (message, validReactions) {
-    const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
+    const totalValidReactions = calculateTotalCount(validReactions);
 
     // Create reaction display string
     const reactionDisplay = validReactions
