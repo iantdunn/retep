@@ -1,34 +1,30 @@
 module.exports = {
-    // Bot token
-    discordToken: 'DISCORD_TOKEN',
-
-    // Used for deploying commands and guild-specific operations
-    discordClientId: 'DISCORD_CLIENT_ID',
-    discordGuildId: 'DISCORD_GUILD_ID',
-
-    validReactions: [
-        '🔥', '💯', '💀', '😂',
+    "discordToken": "",
+    "discordClientId": "",
+    "discordGuildId": "",
+    "validReactions": [
+        "🔥",
+        "💯",
+        "💀",
+        "😂"
     ],
-
-    welcomeSettings: {
-        channelId: 'CHANNEL_ID',
-        welcomeEnabled: true,
-        goodbyeEnabled: true
+    "welcomeSettings": {
+        "channelId": "",
+        "welcomeEnabled": true,
+        "goodbyeEnabled": true
     },
-
-    reactionRoleSettings: {
-        channelId: 'CHANNEL_ID',
-        messageId: '', // Will be set when message is sent
-        enabled: true,
-        roleEmojis: {
-            '💀': 'ROLE_ID',
+    "reactionRoleSettings": {
+        "channelId": "",
+        "messageId": "",
+        "enabled": true,
+        "roleEmojis": {
+            "🔥": ""
         }
-    }
-
-    fireboardSettings: {
-        channelId: 'CHANNEL_ID',
-        enabled: true,
-        threshold: 3, // Minimum valid reactions to appear on fireboard
-        excludeAuthorReactions: true,
+    },
+    "fireboardSettings": {
+        "channelId": "",
+        "enabled": true,
+        "threshold": 3,
+        "excludeAuthorReactions": true
     }
 };

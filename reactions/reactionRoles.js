@@ -1,5 +1,5 @@
 const { reactionRoleSettings } = require('../config');
-const { ConfigManager } = require('./utils/configManager');
+const { updateReactionRoleMessageId } = require('../utils/configUtils');
 const { ReactionUtils } = require('./utils/reactionUtils');
 const { createReactionRolesEmbed } = require('../utils/embeds');
 
@@ -7,7 +7,6 @@ class ReactionRoles {
     constructor(client) {
         this.client = client;
         this.settings = reactionRoleSettings;
-        this.configManager = new ConfigManager();
     }
 
     async initialize() {
@@ -118,7 +117,7 @@ class ReactionRoles {
         const message = await this._createMessage(channel);
         if (message) {
             this.settings.messageId = message.id;
-            this.configManager.updateReactionRoleMessageId(message.id);
+            updateReactionRoleMessageId(message.id);
             console.log(`Created new reaction role message: ${message.id}`);
         }
 

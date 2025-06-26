@@ -2,7 +2,6 @@
 
 ## 1. Refactor
 - Redo entire reactions package
-    - Remove unused methods
     - Consolidate single/double use methods
     - Remove classes from reactions/utils
 
