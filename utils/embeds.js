@@ -63,21 +63,11 @@ function createFireboardEmbed(message, validReactions) {
     };
 
     // Add attachment information if message has attachments
-    if (message.attachments.size > 0) {
-        _addAttachmentFields(embed, message.attachments);
+    if (message.attachments.size == 0) {
+        return embed;
     }
 
-    return embed;
-}
-
-/**
- * Add attachment fields to an embed
- * @param {Object} embed - Embed object to modify
- * @param {Collection} attachments - Discord attachments collection
- * @private
- */
-function _addAttachmentFields(embed, attachments) {
-    const attachmentArray = Array.from(attachments.values());
+    const attachmentArray = Array.from(message.attachments.values());
     const imageAttachment = attachmentArray.find(att =>
         att.contentType && att.contentType.startsWith('image/')
     );
@@ -113,6 +103,8 @@ function _addAttachmentFields(embed, attachments) {
             });
         }
     }
+
+    return embed;
 }
 
 function createTextEmbed(text, color) {

@@ -4,37 +4,6 @@ const path = require('path');
 const configPath = path.join(__dirname, '../config.js');
 
 /**
- * Load the current configuration
- * @returns {Object} - Current configuration object
- */
-function loadConfig() {
-    try {
-        // Clear require cache to get fresh config
-        delete require.cache[require.resolve(configPath)];
-        return require(configPath);
-    } catch (error) {
-        console.error('Error loading config file:', error);
-        return null;
-    }
-}
-
-/**
- * Save configuration object back to file
- * @param {Object} config - Configuration object to save
- * @returns {boolean} - Success status
- */
-function saveConfig(config) {
-    try {
-        const configString = `module.exports = ${JSON.stringify(config, null, 4)};`;
-        fs.writeFileSync(configPath, configString, 'utf8');
-        return true;
-    } catch (error) {
-        console.error('Error saving config file:', error);
-        return false;
-    }
-}
-
-/**
  * Update a specific field in a configuration section
  * @param {string} section - Configuration section name
  * @param {string} field - Field name within the section
@@ -42,34 +11,31 @@ function saveConfig(config) {
  * @returns {boolean} - Success status
  */
 function updateConfigField(section, field, value) {
-    try {
-        const config = loadConfig();
-        if (!config) {
-            return false;
-        }
+    // Clear require cache
+    delete require.cache[require.resolve(configPath)];
+    const config = require(configPath);
 
-        if (!config[section]) {
-            console.error(`Section '${section}' not found in config`);
-            return false;
-        }
-
-        if (!(field in config[section])) {
-            console.error(`Field '${field}' not found in section '${section}'`);
-            return false;
-        }
-
-        config[section][field] = value;
-        
-        if (saveConfig(config)) {
-            console.log(`Updated config: ${section}.${field} = ${value}`);
-            return true;
-        }
-        
-        return false;
-    } catch (error) {
-        console.error('Error updating config field:', error);
-        return false;
+    if (!config) {
+        return;
     }
+
+    if (!config[section]) {
+        console.error(`Section '${section}' not found in config`);
+        return;
+    }
+
+    if (!(field in config[section])) {
+        console.error(`Field '${field}' not found in section '${section}'`);
+        return;
+    }
+
+    config[section][field] = value;
+
+    // Save config
+    const configString = `module.exports = ${JSON.stringify(config, null, 4)};`;
+    fs.writeFileSync(configPath, configString, 'utf8');
+
+    console.log(`Updated config: ${section}.${field} = ${value}`);
 }
 
 /**
@@ -78,12 +44,9 @@ function updateConfigField(section, field, value) {
  * @returns {boolean} - Success status
  */
 function updateReactionRoleMessageId(messageId) {
-    return updateConfigField('reactionRoleSettings', 'messageId', messageId);
+    updateConfigField('reactionRoleSettings', 'messageId', messageId);
 }
 
 module.exports = {
-    loadConfig,
-    saveConfig,
-    updateConfigField,
     updateReactionRoleMessageId
 };
