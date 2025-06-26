@@ -3,13 +3,6 @@ const path = require('path');
 
 const configPath = path.join(__dirname, '../config.js');
 
-/**
- * Update a specific field in a configuration section
- * @param {string} section - Configuration section name
- * @param {string} field - Field name within the section
- * @param {*} value - New value for the field
- * @returns {boolean} - Success status
- */
 function updateConfigField(section, field, value) {
     // Clear require cache
     delete require.cache[require.resolve(configPath)];
@@ -38,15 +31,6 @@ function updateConfigField(section, field, value) {
     console.log(`Updated config: ${section}.${field} = ${value}`);
 }
 
-/**
- * Update the messageId for reaction roles
- * @param {string} messageId - New message ID
- * @returns {boolean} - Success status
- */
-function updateReactionRoleMessageId(messageId) {
+module.exports.updateReactionRoleMessageId = function (messageId) {
     updateConfigField('reactionRoleSettings', 'messageId', messageId);
-}
-
-module.exports = {
-    updateReactionRoleMessageId
 };

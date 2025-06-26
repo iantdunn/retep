@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 
-function createReactionRolesEmbed(roleEmojis) {
+module.exports.createReactionRolesEmbed = function (roleEmojis) {
     const embed = new EmbedBuilder()
         .setTitle('Reaction Roles')
         .setDescription('React to this message to give yourself a role. In addition to being pingable, roles will unlock game-specific text channels.')
@@ -28,7 +28,7 @@ function createReactionRolesEmbed(roleEmojis) {
     return embed;
 }
 
-function createFireboardEmbed(message, validReactions) {
+module.exports.createFireboardEmbed = function (message, validReactions) {
     const totalValidReactions = validReactions.reduce((acc, r) => acc + r.count, 0);
 
     // Create reaction display string
@@ -107,10 +107,8 @@ function createFireboardEmbed(message, validReactions) {
     return embed;
 }
 
-function createTextEmbed(text, color) {
+module.exports.createTextEmbed = function (text, color) {
     return new EmbedBuilder()
         .setDescription(text)
         .setColor(color);
 }
-
-module.exports = { createReactionRolesEmbed, createFireboardEmbed, createTextEmbed };
