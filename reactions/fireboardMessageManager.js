@@ -1,6 +1,5 @@
-const { ReactionUtils } = require('./utils/reactionUtils');
 const { createFireboardEmbed } = require('../utils/embeds');
-const { calculateValidReactions, calculateTotalCount } = require('../utils/reactionUtils');
+const { calculateValidReactions, calculateTotalCount, safelyFetchMessage } = require('../utils/reactionUtils');
 const { getEntry, createEntry, updateEntry, deleteEntryObject, getAllEntries } = require('../utils/fireboardCrud')
 
 module.exports.FireboardMessageManager = class {
@@ -158,8 +157,7 @@ module.exports.FireboardMessageManager = class {
         }
 
         // Fetch reactions and check if still qualifies
-        await ReactionUtils.safelyFetchMessage(originalMessage);
-        await ReactionUtils.safelyFetchReactions(originalMessage);
+        await safelyFetchMessage(originalMessage);
 
         // Check if fireboard message still exists
         let fireboardMessage;

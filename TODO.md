@@ -2,8 +2,6 @@
 
 ## 1. Refactor
 - Redo entire reactions package
-    - Consolidate single/double use methods
-    - Remove classes from reactions/utils
 
 ## 2. Improvements to existing features
 - GIF support

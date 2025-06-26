@@ -1,7 +1,7 @@
 const { reactionRoleSettings } = require('../config');
 const { updateReactionRoleMessageId } = require('../utils/configUtils');
-const { ReactionUtils } = require('./utils/reactionUtils');
 const { createReactionRolesEmbed } = require('../utils/embeds');
+const { emojisMatch, reactionExists } = require('../utils/reactionUtils');
 
 module.exports.ReactionRoles = class {
     constructor(client) {
@@ -59,21 +59,24 @@ module.exports.ReactionRoles = class {
             return true;
         }
 
-        const validation = ReactionUtils.validateObjects({
-            guild: reaction.message.guild,
-            member: await reaction.message.guild.members.fetch(user.id).catch(() => null),
-            role: reaction.message.guild.roles.cache.get(roleId)
-        });
-
-        if (!validation.valid) {
-            console.error(`Missing objects for reaction role: ${validation.missing.join(', ')}`);
+        // Make sure guild, member and role all exist
+        const guild = reaction.message.guild;
+        if (!guild) {
+            console.error('Missing guild for reaction role');
             return true;
         }
 
-        const { member, role } = {
-            member: await reaction.message.guild.members.fetch(user.id),
-            role: reaction.message.guild.roles.cache.get(roleId)
-        };
+        const member = await guild.members.fetch(user.id).catch(() => null);
+        if (!member) {
+            console.error('Could not fetch member for reaction role');
+            return true;
+        }
+
+        const role = guild.roles.cache.get(roleId);
+        if (!role) {
+            console.error(`Role with ID ${roleId} not found`);
+            return true;
+        }
 
         return await this._performRoleAction(member, role, user, action);
     }
@@ -132,7 +135,7 @@ module.exports.ReactionRoles = class {
 
         for (const [emoji, reaction] of message.reactions.cache) {
             const shouldKeep = configEmojis.some(configEmoji =>
-                ReactionUtils.emojisMatch(emoji, configEmoji)
+                emojisMatch(emoji, configEmoji)
             );
 
             if (!shouldKeep) {
@@ -152,7 +155,7 @@ module.exports.ReactionRoles = class {
 
         // Add new reactions
         for (const emojiStr of Object.keys(reactionRoleSettings.roleEmojis)) {
-            if (!ReactionUtils.reactionExists(message, emojiStr)) {
+            if (!reactionExists(message, emojiStr)) {
                 await message.react(emojiStr);
                 console.log(`Added reaction: ${emojiStr}`);
             }

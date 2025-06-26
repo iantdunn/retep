@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
-const { calculateTotalCount } = require('../../utils/reactionUtils');
+const { calculateTotalCount, safelyFetchMessage } = require('../../utils/reactionUtils');
 const { getEntry } = require('../../utils/fireboardCrud');
 
 
@@ -109,9 +109,7 @@ async function handleAdd(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         // Ensure message data is fresh
-        const { ReactionUtils } = require('../../reactions/utils/reactionUtils');
-        await ReactionUtils.safelyFetchMessage(message);
-        await ReactionUtils.safelyFetchReactions(message);
+        await safelyFetchMessage(message);
 
         // Get valid reactions using fireboard's public method        
         const validReactions = await fireboard.getValidReactions(message, true);

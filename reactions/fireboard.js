@@ -1,7 +1,6 @@
 const { fireboardSettings } = require('../config');
-const { ReactionUtils } = require('./utils/reactionUtils');
 const { FireboardMessageManager } = require('./fireboardMessageManager');
-const { calculateValidReactions, calculateTotalCount } = require('../utils/reactionUtils');
+const { calculateValidReactions, calculateTotalCount, safelyFetchMessage, logReactionAction } = require('../utils/reactionUtils');
 const { getEntry } = require('../utils/fireboardCrud')
 
 module.exports.Fireboard = class {
@@ -87,8 +86,7 @@ module.exports.Fireboard = class {
 
         try {
             // Ensure we have fresh message data
-            await ReactionUtils.safelyFetchMessage(message);
-            await ReactionUtils.safelyFetchReactions(message);
+            await safelyFetchMessage(message);
 
             const validReactions = await calculateValidReactions(message);
 
@@ -133,17 +131,14 @@ module.exports.Fireboard = class {
         const totalReactions = calculateTotalCount(reaction.message.reactions.cache);
         const totalValidReactions = calculateTotalCount(validReactions);
 
-        ReactionUtils.logReactionAction(action, reaction, user, {
-            messageAuthor: reaction.message.author,
-            totalReactions,
-            validReactions: totalValidReactions
-        });
+        logReactionAction(action, reaction, user, reaction.message.author, totalReactions, totalValidReactions);
 
         if (validReactions.length > 0) {
             console.log(`Valid reactions breakdown:`);
             validReactions.forEach(r => {
-                console.log(`  ${r.emoji}: ${r.count}`);
+                if (r.count > 0) console.log(`  ${r.emoji}: ${r.count}`);
             });
+            console.log('');
         }
     }
 

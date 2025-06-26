@@ -36,6 +36,7 @@ module.exports.calculateValidReactions = async function (message) {
             }
         }
 
+        if (count === 0) continue; // Skip if no valid reactions
         messageValidReactions.push({
             emoji: reactionData.emoji,
             count: count
@@ -47,4 +48,53 @@ module.exports.calculateValidReactions = async function (message) {
 
 module.exports.calculateTotalCount = function (validReactions) {
     return validReactions.reduce((acc, r) => acc + r.count, 0);
+}
+
+module.exports.safelyFetchMessage = async function (message) {
+    try {
+        if (message.partial) {
+            await message.fetch();
+        }
+
+        for (const [, reaction] of message.reactions.cache) {
+            if (reaction.partial) {
+                await reaction.fetch();
+            }
+        }
+
+        return message;
+    } catch (error) {
+        console.error('Error fetching message:', error);
+        return null;
+    }
+}
+
+function extractEmojiId(emojiStr) {
+    const match = emojiStr.match(/<:.+?:(\d+)>/);
+    return match ? match[1] : emojiStr;
+}
+
+module.exports.emojisMatch = function (emoji1, emoji2) {
+    return extractEmojiId(emoji1) === extractEmojiId(emoji2);
+}
+
+module.exports.reactionExists = function (message, emojiStr) {
+    const emojiId = extractEmojiId(emojiStr);
+    const existingReactions = Array.from(message.reactions.cache.keys());
+
+    return existingReactions.some(existing => {
+        const existingId = extractEmojiId(existing);
+        return existingId === emojiId;
+    });
+}
+
+module.exports.logReactionAction = function (action, reaction, user, author, totalReactions, validReactions) {
+    console.log(`\n=== Reaction ${action.toUpperCase()} ===`);
+    console.log(`Message ID: ${reaction.message.id}`);
+    console.log(`User: ${user.displayName} (${user.id})`);
+    console.log(`Reaction: ${reaction.emoji}`);
+    console.log(`Message Author: ${author.displayName} (${author.id})`);
+    console.log(`Total reactions: ${totalReactions}`);
+    console.log(`Valid reactions: ${validReactions}`);
+    console.log(`===============================\n`);
 }
