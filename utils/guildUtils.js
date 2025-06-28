@@ -17,9 +17,11 @@ module.exports.fetchMessage = async (client, channelId, messageId) => {
         throw new Error(`Channel with ID ${channelId} not found.`);
     }
 
-    const message = await channel.messages.fetch(messageId);
-    if (!message) {
-        throw new Error(`Message with ID ${messageId} not found.`);
+    let message;
+    try {
+        message = await channel.messages.fetch(messageId);
+    } catch (error) {
+        return null;
     }
 
     if (message.partial) {

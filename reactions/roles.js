@@ -18,11 +18,11 @@ module.exports.ReactionRoles = class {
         if (Object.keys(this.settings.roleEmojis).length === 0)
             throw new Error('No reaction role mappings configured');
 
-        const channel = await this.client.channels.fetch(this.settings.channelId);
-        if (!channel)
+        this.channel = await this.client.channels.fetch(this.settings.channelId);
+        if (!this.channel)
             throw new Error(`Cannot find channel with ID: ${this.settings.channelId}`);
 
-        let message = await this._getOrCreateMessage(channel);
+        let message = await this._getOrCreateMessage();
         if (message)
             await this._refreshMessage(message);
     }
@@ -87,11 +87,11 @@ module.exports.ReactionRoles = class {
         return true;
     }
 
-    async _getOrCreateMessage(channel) {
+    async _getOrCreateMessage() {
         // Try to fetch existing message
         if (this.settings.messageId) {
             try {
-                const message = await channel.messages.fetch(this.settings.messageId);
+                const message = await this.channel.messages.fetch(this.settings.messageId);
                 console.log(`Found existing reaction role message: ${this.settings.messageId}`);
                 return message;
             } catch (error) {
@@ -102,7 +102,7 @@ module.exports.ReactionRoles = class {
 
         // Create new message
         const embed = createReactionRolesEmbed(this.settings.roleEmojis);
-        const message = await channel.send({ embeds: [embed] });
+        const message = await this.channel.send({ embeds: [embed] });
         if (message) {
             updateReactionRoleMessageId(message.id);
             console.log(`Created new reaction role message: ${message.id}`);
