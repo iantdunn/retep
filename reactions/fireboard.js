@@ -168,7 +168,7 @@ module.exports.Fireboard = class {
             console.log(`Recreated fireboard channel message for message ${message.id} as message ${fireboardMessage.id}`);
         } finally {
             // Update the database entry
-            await updateEntry(entry.id, { channelId: message.channel.id, validReactionCount: totalValidReactionCount, fireboardMessageId: fireboardMessage.id });
+            await updateEntry(message.id, { channelId: message.channel.id, validReactionCount: totalValidReactionCount, fireboardMessageId: fireboardMessage.id });
             console.log(`Updated fireboard entry for message ${message.id} as message ${fireboardMessage.id}.`);
         }
     }
