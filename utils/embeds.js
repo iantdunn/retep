@@ -37,7 +37,7 @@ module.exports.createFireboardEmbed = function (message, validReactions, authorN
 
     const embed = new EmbedBuilder()
         .setColor(0xFF4500) // Orange-red color for fire theme
-        .setAuthor({ name: authorNickname || message.author.username, iconURL: message.author.displayAvatarURL() })
+        .setAuthor({ name: authorNickname || message.author.displayName, iconURL: message.author.displayAvatarURL() })
         .addFields(
             { name: 'Reactions', value: reactionDisplay || 'None', inline: true },
             { name: 'Link', value: `${message.url}`, inline: true }

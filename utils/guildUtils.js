@@ -42,7 +42,7 @@ module.exports.fetchAuthorNickname = async (client, authorId) => {
 
     try {
         const member = await guild.members.fetch(authorId);
-        return member.nickname || member.user.username;
+        return member.nickname || member.user.displayName;
     } catch (error) {
         console.error(`Error fetching member ${authorId}:`, error);
         return null;
