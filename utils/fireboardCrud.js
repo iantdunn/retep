@@ -11,13 +11,14 @@ module.exports.getEntry = async (messageId) => {
     }
 }
 
-module.exports.createEntry = async (messageId, fireboardMessageId, authorId, validReactionCount = 0) => {
+module.exports.createEntry = async (messageId, channelId, fireboardMessageId, authorId, validReactionCount = 0) => {
     try {
         // Use findOrCreate to handle race conditions
         const [entry, created] = await FireboardEntry.findOrCreate({
             where: { messageId },
             defaults: {
                 messageId,
+                channelId,
                 fireboardMessageId,
                 authorId,
                 validReactionCount

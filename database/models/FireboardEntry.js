@@ -13,6 +13,11 @@ module.exports = (sequelize) => {
             unique: true,
             comment: 'Discord message ID of the original message',
         },
+        channelId: {
+            type: DataTypes.STRING,
+            allowNull: true, // TODO change back to false if channel ID is always available
+            comment: 'Discord channel ID of the original message',
+        },
         fireboardMessageId: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -44,6 +49,9 @@ module.exports = (sequelize) => {
             },
             {
                 fields: ['authorId']
+            },
+            {
+                fields: ['channelId']
             }
         ]
     });

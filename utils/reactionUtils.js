@@ -50,25 +50,6 @@ module.exports.calculateTotalCount = function (validReactions) {
     return validReactions.reduce((acc, r) => acc + r.count, 0);
 }
 
-module.exports.safelyFetchMessage = async function (message) {
-    try {
-        if (message.partial) {
-            await message.fetch();
-        }
-
-        for (const [, reaction] of message.reactions.cache) {
-            if (reaction.partial) {
-                await reaction.fetch();
-            }
-        }
-
-        return message;
-    } catch (error) {
-        console.error('Error fetching message:', error);
-        return null;
-    }
-}
-
 function extractEmojiId(emojiStr) {
     const match = emojiStr.match(/<:.+?:(\d+)>/);
     return match ? match[1] : emojiStr;
@@ -86,15 +67,4 @@ module.exports.reactionExists = function (message, emojiStr) {
         const existingId = extractEmojiId(existing);
         return existingId === emojiId;
     });
-}
-
-module.exports.logReactionAction = function (action, reaction, user, author, totalReactions, validReactions) {
-    console.log(`\n=== Reaction ${action.toUpperCase()} ===`);
-    console.log(`Message ID: ${reaction.message.id}`);
-    console.log(`User: ${user.displayName} (${user.id})`);
-    console.log(`Reaction: ${reaction.emoji}`);
-    console.log(`Message Author: ${author.displayName} (${author.id})`);
-    console.log(`Total reactions: ${totalReactions}`);
-    console.log(`Valid reactions: ${validReactions}`);
-    console.log(`===============================\n`);
 }
