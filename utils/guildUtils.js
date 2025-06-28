@@ -36,3 +36,15 @@ module.exports.fetchMessage = async (client, channelId, messageId) => {
 
     return message;
 }
+
+module.exports.fetchAuthorNickname = async (client, authorId) => {
+    const guild = client.guilds.cache.get(discordGuildId);
+
+    try {
+        const member = await guild.members.fetch(authorId);
+        return member.nickname || member.user.username;
+    } catch (error) {
+        console.error(`Error fetching member ${authorId}:`, error);
+        return null;
+    }
+}

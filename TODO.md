@@ -2,7 +2,6 @@
 
 ## 2. Improvements to existing features
 - GIF support
-- Nicknames instead of usernames
 - Message reply support
 - Message edit listening
 

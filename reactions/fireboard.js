@@ -2,7 +2,7 @@ const { fireboardSettings } = require('../config');
 const { calculateValidReactions, calculateTotalCount } = require('../utils/reactionUtils');
 const { getEntry, createEntry, updateEntry, deleteEntryObject, getAllEntries } = require('../utils/fireboardCrud');
 const { createFireboardEmbed } = require('../utils/embeds');
-const { fetchMessage } = require('../utils/guildUtils');
+const { fetchMessage, fetchAuthorNickname } = require('../utils/guildUtils');
 
 module.exports.Fireboard = class {
     constructor(client) {
@@ -138,7 +138,7 @@ module.exports.Fireboard = class {
 
     async _addFireboardEntry(message, validReactions) {
         const totalValidReactionCount = calculateTotalCount(validReactions);
-        const embed = createFireboardEmbed(message, validReactions);
+        const embed = createFireboardEmbed(message, validReactions, await fetchAuthorNickname(this.client, message.author.id));
         const fireboardMessage = await this.fireboardChannel.send({ embeds: [embed] });
 
         await createEntry(
@@ -159,12 +159,12 @@ module.exports.Fireboard = class {
         let fireboardMessage;
         try {
             fireboardMessage = await this.fireboardChannel.messages.fetch(entry.fireboardMessageId);
-            const embed = createFireboardEmbed(message, validReactions);
+            const embed = createFireboardEmbed(message, validReactions, await fetchAuthorNickname(this.client, message.author.id));
             await fireboardMessage.edit({ embeds: [embed] });
             console.log(`Updated fireboard channel message for message ${message.id} as message ${fireboardMessage.id}`);
         } catch (error) {
             // Fireboard message doesn't exist, recreate it
-            const embed = createFireboardEmbed(message, validReactions);
+            const embed = createFireboardEmbed(message, validReactions, await fetchAuthorNickname(this.client, message.author.id));
             fireboardMessage = await this.fireboardChannel.send({ embeds: [embed] });
             console.log(`Recreated fireboard channel message for message ${message.id} as message ${fireboardMessage.id}`);
         } finally {

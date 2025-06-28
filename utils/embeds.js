@@ -1,5 +1,4 @@
 const { EmbedBuilder } = require('discord.js');
-const { calculateTotalCount } = require('./reactionUtils');
 
 module.exports.createReactionRolesEmbed = function (roleEmojis) {
     const embed = new EmbedBuilder()
@@ -29,44 +28,27 @@ module.exports.createReactionRolesEmbed = function (roleEmojis) {
     return embed;
 }
 
-module.exports.createFireboardEmbed = function (message, validReactions) {
-    const totalValidReactions = calculateTotalCount(validReactions);
-
+module.exports.createFireboardEmbed = function (message, validReactions, authorNickname) {
     // Create reaction display string
     const reactionDisplay = validReactions
         .filter(r => r.count > 0)
         .map(r => `${r.emoji} ${r.count}`)
         .join(' • ');
 
-    const embed = {
-        color: 0xFF4500, // Orange-red color for fire theme
-        author: {
-            name: message.author.displayName,
-            icon_url: message.author.displayAvatarURL()
-        },
-        description: message.content || '*No text content*',
-        fields: [
-            {
-                name: '🔥 Reactions',
-                value: reactionDisplay || 'None',
-                inline: true
-            },
-            {
-                name: '🔗 Link',
-                value: `${message.url}`,
-                inline: true
-            }
-        ],
-        footer: {
-            text: `Total: ${totalValidReactions} reactions`,
-        },
-        timestamp: message.createdAt.toISOString()
-    };
+    const embed = new EmbedBuilder()
+        .setColor(0xFF4500) // Orange-red color for fire theme
+        .setAuthor({ name: authorNickname || message.author.username, iconURL: message.author.displayAvatarURL() })
+        .addFields(
+            { name: 'Reactions', value: reactionDisplay || 'None', inline: true },
+            { name: 'Link', value: `${message.url}`, inline: true }
+        )
+        .setTimestamp(message.createdAt);
+
+    // Add description only if message content exists
+    if (message.content) embed.setDescription(message.content);
 
     // Add attachment information if message has attachments
-    if (message.attachments.size == 0) {
-        return embed;
-    }
+    if (message.attachments.size == 0) return embed;
 
     const attachmentArray = Array.from(message.attachments.values());
     const imageAttachment = attachmentArray.find(att =>
@@ -75,15 +57,15 @@ module.exports.createFireboardEmbed = function (message, validReactions) {
 
     if (imageAttachment) {
         // Add image if it's an image attachment
-        embed.image = { url: imageAttachment.url };
+        embed.setImage(imageAttachment.url);
     } else {
         // For non-image attachments, show filename
         const attachmentNames = attachmentArray
             .map(att => att.name || 'Unknown file')
             .join(', ');
 
-        embed.fields.push({
-            name: '📎 Attachments',
+        embed.addFields({
+            name: 'Attachments',
             value: attachmentNames,
             inline: false
         });
@@ -97,8 +79,8 @@ module.exports.createFireboardEmbed = function (message, validReactions) {
             .join(', ');
 
         if (otherAttachments) {
-            embed.fields.push({
-                name: '📎 Other Attachments',
+            embed.addFields({
+                name: 'Other Attachments',
                 value: otherAttachments,
                 inline: false
             });
