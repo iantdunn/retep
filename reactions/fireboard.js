@@ -121,6 +121,7 @@ module.exports.Fireboard = class {
             } else { // Not eligible for fireboard
                 if (entry) {
                     // Delete existing entry
+                    console.log(`Message ${message.id} no longer eligible for fireboard.`);
                     await this._deleteFireboardEntry(message.id);
                     status = 'deleted';
                 } else {

@@ -1,7 +1,5 @@
 # TODO List
 
-- Does not listen for message reaction remove after startup
-
 ## 2. Improvements to existing features
 - GIF support
 - Nicknames instead of usernames

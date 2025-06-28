@@ -17,6 +17,8 @@ module.exports.ReactionHandler = class {
     }
 
     async add(reaction, user) {
+        console.log(`Reaction added: ${reaction.emoji.name} by ${user.tag} on message ${reaction.message.id}`);
+
         // Try reaction roles first
         const roleHandled = await this.roles.reactionAdd(reaction, user);
 
@@ -26,6 +28,8 @@ module.exports.ReactionHandler = class {
     }
 
     async remove(reaction, user) {
+        console.log(`Reaction removed: ${reaction.emoji.name} by ${user.tag} on message ${reaction.message.id}`);
+
         // Try reaction roles first
         const roleHandled = await this.roles.reactionRemove(reaction, user);
 
