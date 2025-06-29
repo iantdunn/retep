@@ -7,5 +7,4 @@
 
 ## 3. Features
 - Dynamic leaderboard
-- Scheduled reloads?
 - Command to add/remove reaction roles - args: name, emoji
