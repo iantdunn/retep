@@ -79,7 +79,7 @@ module.exports.Fireboard = class {
     }
 
     async refreshMessage(channelId, messageId) {
-        console.log(`Refreshing message ${messageId} in channel ${channelId}`);
+        console.log(`Refreshing message ${messageId} in channel ${channelId ? `#${channelId}` : 'UNKNOWN'}`);
 
         const message = await fetchMessage(this.client, channelId, messageId);
         const entry = await getEntry(messageId);
@@ -103,36 +103,33 @@ module.exports.Fireboard = class {
             this.processingMessages.add(messageId);
         }
 
-        let status;
-        try {
-            const validReactions = await calculateValidReactions(message);
-            const totalValidReactions = calculateTotalCount(validReactions);
+        const validReactions = await calculateValidReactions(message);
+        const totalValidReactions = calculateTotalCount(validReactions);
 
-            if (totalValidReactions >= fireboardSettings.threshold) { // Eligible for fireboard
-                if (entry) {
-                    // Update existing entry
-                    await this._updateFireboardEntry(message, validReactions);
-                    status = 'updated';
-                } else {
-                    // Create new entry
-                    await this._addFireboardEntry(message, validReactions);
-                    status = 'added';
-                }
-            } else { // Not eligible for fireboard
-                if (entry) {
-                    // Delete existing entry
-                    console.log(`Message ${message.id} no longer eligible for fireboard.`);
-                    await this._deleteFireboardEntry(message.id);
-                    status = 'deleted';
-                } else {
-                    console.log(`Message ${message.id} not eligible for fireboard.`);
-                    status = 'not eligible';
-                }
+        let status = 'unknown';
+        if (totalValidReactions >= fireboardSettings.threshold) { // Eligible for fireboard
+            if (entry) {
+                // Update existing entry
+                await this._updateFireboardEntry(message, validReactions);
+                status = 'updated';
+            } else {
+                // Create new entry
+                await this._addFireboardEntry(message, validReactions);
+                status = 'added';
             }
-        } finally {
-            this.processingMessages.delete(messageId);
+        } else { // Not eligible for fireboard
+            if (entry) {
+                // Delete existing entry
+                console.log(`Message ${message.id} no longer eligible for fireboard.`);
+                await this._deleteFireboardEntry(message.id);
+                status = 'deleted';
+            } else {
+                console.log(`Message ${message.id} not eligible for fireboard.`);
+                status = 'not eligible';
+            }
         }
 
+        this.processingMessages.delete(messageId);
         return status;
     }
 

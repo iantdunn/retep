@@ -37,8 +37,4 @@ module.exports.ReactionHandler = class {
         if (!roleHandled)
             await this.fireboard.remove(reaction, user);
     }
-
-    async delete(message) {
-        await this.fireboard.delete(message);
-    }
 }

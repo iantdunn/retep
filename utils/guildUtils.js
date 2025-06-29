@@ -2,29 +2,30 @@ const { discordGuildId } = require('../config.js');
 
 module.exports.fetchMessage = async (client, channelId, messageId) => {
     const guild = client.guilds.cache.get(discordGuildId);
-
-    const channel = guild.channels.cache.get(channelId);
-    if (!channel) { // TODO remove once check has occurred in prod
-        for (const [, channel] of guild.channels.cache) {
-            if (channel.isTextBased()) {
-                try {
-                    return await channel.messages.fetch(messageId);
-                } catch (error) {
-                    // Message not in this channel, continue
-                }
-            }
-        }
-        throw new Error(`Channel with ID ${channelId} not found.`);
-    }
+    const channelCache = guild.channels.cache;
 
     let message;
     try {
+        const channel = channelCache.get(channelId);
         message = await channel.messages.fetch(messageId);
     } catch (error) {
-        return null;
+        // Backup to allow message id to be provided without channel id
+        for (const [, channelCacheMember] of channelCache) {
+            if (!channelCacheMember.isTextBased()) continue;
+
+            try {
+                message = await channelCacheMember.messages.fetch(messageId);
+                console.log(`Searched and found message ${messageId} in channel ${channelCacheMember.id}`);
+            } catch (error) {
+                // Message not in this channel, continue
+            }
+        }
     }
 
-    if (message.partial) {
+    if (!message) {
+        console.error(`Message with ID ${messageId} not found in any channel.`);
+        return null;
+    } else if (message.partial) {
         await message.fetch();
     }
 
