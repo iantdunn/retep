@@ -1,44 +1,58 @@
 const { discordGuildId } = require('../config.js');
 
-module.exports.fetchMessage = async (client, channelId, messageId) => {
+module.exports.fetchChannel = async function (client, channelId) {
     const guild = client.guilds.cache.get(discordGuildId);
-    const channelCache = guild.channels.cache;
 
-    let message;
     try {
-        const channel = channelCache.get(channelId);
-        message = await channel.messages.fetch(messageId);
+        return await guild.channels.cache.get(channelId);
     } catch (error) {
-        // Backup to allow message id to be provided without channel id
-        for (const [, channelCacheMember] of channelCache) {
-            if (!channelCacheMember.isTextBased()) continue;
+        return null;
+    }
+};
+
+module.exports.fetchMessage = async function (client, channelId, messageId) {
+    const guild = client.guilds.cache.get(discordGuildId);
+    const channel = await module.exports.fetchChannel(client, channelId);
+
+    // Backup to allow message id to be provided without channel id
+    let message;
+    if (!channel) {
+        for (const [, cacheChannel] of guild.channels.cache) {
+            if (!cacheChannel.isTextBased()) continue;
 
             try {
-                message = await channelCacheMember.messages.fetch(messageId);
-                console.log(`Searched and found message ${messageId} in channel ${channelCacheMember.id}`);
+                message = await cacheChannel.messages.fetch(messageId);
+                channel = cacheChannel; // Set channel if found
+                console.log(`Searched and found message ${messageId} in channel ${cacheChannel.id}`);
             } catch (error) {
                 // Message not in this channel, continue
             }
         }
     }
 
-    if (!message) {
-        console.error(`Message with ID ${messageId} not found in any channel.`);
-        return null;
-    } else if (message.partial) {
-        await message.fetch();
-    }
+    try {
+        if (!message)
+            message = await channel.messages.fetch(messageId);
 
-    for (const [, reaction] of message.reactions.cache) {
-        if (reaction.partial) {
-            await reaction.fetch();
+        if (!message) {
+            console.error(`Message with ID ${messageId} not found in channel ${channelId}.`);
+            return null;
         }
+
+        if (message.partial) await message.fetch();
+
+        for (const [, reaction] of message.reactions.cache)
+            if (reaction.partial)
+                await reaction.fetch();
+
+        return message;
+    } catch (error) {
+        console.error(`Message with ID ${messageId} not found in any channel or could not be fetched.`, error);
+        return null;
     }
+};
 
-    return message;
-}
-
-module.exports.fetchAuthorNickname = async (client, authorId) => {
+module.exports.fetchAuthorNickname = async function (client, authorId) {
     const guild = client.guilds.cache.get(discordGuildId);
 
     try {
