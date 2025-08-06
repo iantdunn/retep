@@ -19,7 +19,7 @@ module.exports = {
         "channelId": "",
         "enabled": true,
         "threshold": 3,
-        "excludeAuthorReactions": true
+        "excludeAuthorReactions": true,
         "validReactions": [
             "🔥",
             "💯",
