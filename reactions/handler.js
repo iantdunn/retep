@@ -12,8 +12,18 @@ module.exports.ReactionHandler = class {
     async initialize() {
         console.log('Initializing Reaction Handler');
 
-        await this.roles.initialize();
-        await this.fireboard.initialize();
+        try {
+            await this.roles.initialize();
+
+        } catch (error) {
+            console.error('Error initializing Reaction Handler:', error);
+        }
+
+        try {
+            await this.fireboard.initialize();
+        } catch (error) {
+            console.error('Error initializing Fireboard:', error);
+        }
     }
 
     async add(reaction, user) {
