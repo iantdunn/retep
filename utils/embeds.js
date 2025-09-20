@@ -40,7 +40,7 @@ module.exports.createFireboardEmbed = function (message, validReactions, authorN
         .setAuthor({ name: authorNickname || message.author.displayName, iconURL: message.author.displayAvatarURL() })
         .addFields(
             { name: 'Reactions', value: reactionDisplay || 'None', inline: true },
-            { name: 'Link', value: `**${message.channel.name}:** ${message.url}`, inline: true }
+            { name: 'Link', value: `**${message.channel.name} - **${message.url}`, inline: true }
         )
         .setTimestamp(message.createdAt);
 
