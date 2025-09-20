@@ -7,6 +7,8 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "dev": "pm2 start ecosystem.config.js --env dev",
+    "prod": "pm2 start ecosystem.config.js --env prod",
     "start": "node .",
     "lint": "eslint .",
     "deployCommands": "node scripts/deploy-commands.js"
