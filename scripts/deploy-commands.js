@@ -19,8 +19,7 @@ for (const folder of commandFolders) {
 		if ('data' in command && 'execute' in command) {
 			commands.push(command.data.toJSON());
 			console.log(`Loaded command: ${command.data.name} from ${filePath}`);
-		}
-		else {
+		} else {
 			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
 		}
 	}
@@ -42,8 +41,7 @@ const rest = new REST().setToken(discordToken);
 		);
 
 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
-	}
-	catch (error) {
+	} catch (error) {
 		// And of course, make sure you catch and log any errors!
 		console.error(error);
 	}

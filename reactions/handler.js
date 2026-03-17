@@ -15,15 +15,13 @@ module.exports.ReactionHandler = class {
 		try {
 			await this.roles.initialize();
 
-		}
-		catch (error) {
+		} catch (error) {
 			console.error('Error initializing Reaction Handler:', error);
 		}
 
 		try {
 			await this.fireboard.initialize();
-		}
-		catch (error) {
+		} catch (error) {
 			console.error('Error initializing Fireboard:', error);
 		}
 	}

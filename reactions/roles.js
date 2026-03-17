@@ -71,8 +71,7 @@ module.exports.ReactionRoles = class {
 			}
 			await member.roles.add(role);
 			console.log(`Added role ${role.name} to ${user.displayName}`);
-		}
-		else if (action === 'remove') {
+		} else if (action === 'remove') {
 			if (!hasRole) {
 				console.log(`User ${user.displayName} doesn't have role ${role.name}`);
 				return true;
@@ -91,9 +90,8 @@ module.exports.ReactionRoles = class {
 				const message = await this.channel.messages.fetch(this.settings.messageId);
 				console.log(`Found existing reaction role message: ${this.settings.messageId}`);
 				return message;
-			}
-			catch (error) {
-				console.log(`Could not fetch message with ID ${this.settings.messageId}, will create new one`);
+			} catch (error) {
+				console.log(`Could not fetch message with ID ${this.settings.messageId}, will create new one\n\n`, error);
 				this.settings.messageId = null;
 			}
 		}

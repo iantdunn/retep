@@ -16,8 +16,7 @@ async function testConnection() {
 	try {
 		await sequelize.authenticate();
 		console.log('Database connection has been established successfully.');
-	}
-	catch (error) {
+	} catch (error) {
 		console.error('Unable to connect to the database:', error);
 	}
 }
@@ -28,8 +27,7 @@ async function initializeDatabase() {
 		await testConnection();
 		await sequelize.sync({ alter: true }); // Use alter to add new columns
 		console.log('Database tables created successfully.');
-	}
-	catch (error) {
+	} catch (error) {
 		console.error('Error initializing database:', error);
 	}
 }

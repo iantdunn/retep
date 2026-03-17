@@ -5,8 +5,7 @@ module.exports.getEntry = async (messageId) => {
 		return await FireboardEntry.findOne({
 			where: { messageId },
 		});
-	}
-	catch (error) {
+	} catch (error) {
 		console.error('Error getting fireboard entry:', error);
 		return null;
 	}
@@ -31,21 +30,18 @@ module.exports.createEntry = async (messageId, channelId, fireboardMessageId, au
 		}
 
 		return entry;
-	}
-	catch (error) {
+	} catch (error) {
 		// Handle specific unique constraint errors
 		if (error.name === 'SequelizeUniqueConstraintError') {
 			console.log(`Unique constraint violation for message ${messageId}, entry likely already exists`);
 			// Try to find the existing entry
 			try {
 				return await this.getEntry(messageId);
-			}
-			catch (findError) {
+			} catch (findError) {
 				console.error('Error finding existing fireboard entry:', findError);
 				return null;
 			}
-		}
-		else {
+		} else {
 			console.error('Error creating fireboard entry:', error);
 			return null;
 		}
@@ -58,8 +54,7 @@ module.exports.updateEntry = async (messageId, updates) => {
 			where: { messageId },
 		});
 		return updatedRowsCount > 0;
-	}
-	catch (error) {
+	} catch (error) {
 		console.error('Error updating fireboard entry:', error);
 		return false;
 	}
@@ -76,8 +71,7 @@ module.exports.getAllEntries = async (limit = null) => {
 		}
 
 		return await FireboardEntry.findAll(options);
-	}
-	catch (error) {
+	} catch (error) {
 		console.error('Error getting all fireboard entries:', error);
 		return [];
 	}
@@ -87,8 +81,7 @@ module.exports.deleteEntryObject = async (entry) => {
 	try {
 		await entry.destroy();
 		return true;
-	}
-	catch (error) {
+	} catch (error) {
 		console.error('Error deleting fireboard entry object:', error);
 		return false;
 	}

@@ -19,11 +19,9 @@ client.once('ready', async () => {
 		console.log(`Simulating guildMemberAdd for ${member.user.tag}`);
 		await guildMemberAddEvent.execute(member);
 		console.log('Simulation completed');
-	}
-	catch (error) {
+	} catch (error) {
 		console.error(error);
-	}
-	finally {
+	} finally {
 		client.destroy();
 	}
 });

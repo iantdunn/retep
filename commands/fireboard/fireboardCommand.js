@@ -25,12 +25,14 @@ module.exports = {
 
 		switch (subcommand) {
 		case 'refresh':
+		{
 			const messageId = interaction.options.getString('message_id');
 			const status = await interaction.client.reactionHandler.fireboard.refreshMessage(null, messageId);
 			return interaction.editReply({
 				content: `Message ${messageId} was ${status}.`,
 				flags: MessageFlags.Ephemeral,
 			});
+		}
 		case 'reactions':
 			if (!fireboardSettings.enabled) {
 				return interaction.editReply({

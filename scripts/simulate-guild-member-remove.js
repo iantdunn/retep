@@ -19,11 +19,9 @@ client.once('ready', async () => {
 		console.log(`Simulating guildMemberRemove for ${member.user.tag}`);
 		await guildMemberRemoveEvent.execute(member);
 		console.log('Simulation completed');
-	}
-	catch (error) {
+	} catch (error) {
 		console.error(error);
-	}
-	finally {
+	} finally {
 		client.destroy();
 	}
 });

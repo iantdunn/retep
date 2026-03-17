@@ -17,8 +17,7 @@ module.exports.createReactionRolesEmbed = function(roleEmojis) {
 			value: roleDescriptions.join('\n'),
 			inline: false,
 		});
-	}
-	else {
+	} else {
 		embed.addFields({
 			name: 'Available Roles',
 			value: 'No roles configured',
@@ -59,8 +58,7 @@ module.exports.createFireboardEmbed = function(message, validReactions, authorNi
 	if (imageAttachment) {
 		// Add image if it's an image attachment
 		embed.setImage(imageAttachment.url);
-	}
-	else {
+	} else {
 		// For non-image attachments, show filename
 		const attachmentNames = attachmentArray
 			.map(att => att.name || 'Unknown file')

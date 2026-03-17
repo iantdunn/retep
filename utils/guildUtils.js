@@ -5,15 +5,15 @@ module.exports.fetchChannel = async function(client, channelId) {
 
 	try {
 		return await guild.channels.cache.get(channelId);
-	}
-	catch (error) {
+	} catch (error) {
+		console.log(error);
 		return null;
 	}
 };
 
 module.exports.fetchMessage = async function(client, channelId, messageId) {
 	const guild = client.guilds.cache.get(discordGuildId);
-	const channel = await module.exports.fetchChannel(client, channelId);
+	let channel = await module.exports.fetchChannel(client, channelId);
 
 	// Backup to allow message id to be provided without channel id
 	let message;
@@ -25,8 +25,8 @@ module.exports.fetchMessage = async function(client, channelId, messageId) {
 				message = await cacheChannel.messages.fetch(messageId);
 				channel = cacheChannel; // Set channel if found
 				console.log(`Searched and found message ${messageId} in channel ${cacheChannel.id}`);
-			}
-			catch (error) {
+			// eslint-disable-next-line no-unused-vars
+			} catch (error) {
 				// Message not in this channel, continue
 			}
 		}
@@ -47,8 +47,7 @@ module.exports.fetchMessage = async function(client, channelId, messageId) {
 		}
 
 		return message;
-	}
-	catch (error) {
+	} catch (error) {
 		console.error(`Message with ID ${messageId} not found in any channel or could not be fetched.`, error);
 		return null;
 	}
@@ -60,8 +59,7 @@ module.exports.fetchAuthorNickname = async function(client, authorId) {
 	try {
 		const member = await guild.members.fetch(authorId);
 		return member.nickname || member.user.displayName;
-	}
-	catch (error) {
+	} catch (error) {
 		console.error(`Error fetching member ${authorId}:`, error);
 		return null;
 	}

@@ -22,11 +22,15 @@ module.exports.Fireboard = class {
 		await this._refreshAllEntries();
 	}
 
+	// TODO remove unused parameter, forgot why i put this here
+	// eslint-disable-next-line no-unused-vars
 	async add(reaction, user) {
 		if (!this.settings.enabled) return;
 		await this.refreshMessage(reaction.message.channel.id, reaction.message.id);
 	}
 
+	// TODO remove unused parameter, forgot why i put this here
+	// eslint-disable-next-line no-unused-vars
 	async remove(reaction, user) {
 		if (!this.settings.enabled) return;
 		await this.refreshMessage(reaction.message.channel.id, reaction.message.id);
@@ -43,8 +47,7 @@ module.exports.Fireboard = class {
 		if (entry) {
 			await this._deleteFireboardEntry(message.id);
 			console.log(`Successfully removed fireboard entry for deleted message ${message.id}`);
-		}
-		else {
+		} else {
 			console.log(`No fireboard entry found for deleted message ${message.id}`);
 		}
 	}
@@ -70,8 +73,7 @@ module.exports.Fireboard = class {
 				const result = await this.refreshMessage(entry.channelId, entry.messageId);
 				if (result === 'updated' || result === 'added') refreshed++;
 				else if (result === 'deleted') removed++;
-			}
-			catch (error) {
+			} catch (error) {
 				console.error(`Error refreshing entry ${entry.messageId}:`, error);
 			}
 		}
@@ -100,8 +102,7 @@ module.exports.Fireboard = class {
 		if (this.processingMessages.has(messageId)) {
 			console.log(`Message ${messageId} is already being processed, skipping...`);
 			return 'skipped';
-		}
-		else {
+		} else {
 			this.processingMessages.add(messageId);
 		}
 
@@ -114,24 +115,19 @@ module.exports.Fireboard = class {
 				// Update existing entry
 				await this._updateFireboardEntry(message, validReactions);
 				status = 'updated';
-			}
-			else {
+			} else {
 				// Create new entry
 				await this._addFireboardEntry(message, validReactions);
 				status = 'added';
 			}
-		}
-		else { // Not eligible for fireboard
-			if (entry) {
-				// Delete existing entry
-				console.log(`Message ${message.id} no longer eligible for fireboard.`);
-				await this._deleteFireboardEntry(message.id);
-				status = 'deleted';
-			}
-			else {
-				console.log(`Message ${message.id} not eligible for fireboard.`);
-				status = 'not eligible';
-			}
+		} else if (entry) { // Not eligible for fireboard
+			// Delete existing entry
+			console.log(`Message ${message.id} no longer eligible for fireboard.`);
+			await this._deleteFireboardEntry(message.id);
+			status = 'deleted';
+		} else {
+			console.log(`Message ${message.id} not eligible for fireboard.`);
+			status = 'not eligible';
 		}
 
 		this.processingMessages.delete(messageId);
@@ -164,14 +160,13 @@ module.exports.Fireboard = class {
 			const embed = createFireboardEmbed(message, validReactions, await fetchAuthorNickname(this.client, message.author.id));
 			await fireboardMessage.edit({ embeds: [embed] });
 			console.log(`Updated fireboard channel message for message ${message.id} as message ${fireboardMessage.id}`);
-		}
-		catch (error) {
+		// eslint-disable-next-line no-unused-vars
+		} catch (error) {
 			// Fireboard message doesn't exist, recreate it
 			const embed = createFireboardEmbed(message, validReactions, await fetchAuthorNickname(this.client, message.author.id));
 			fireboardMessage = await this.fireboardChannel.send({ embeds: [embed] });
 			console.log(`Recreated fireboard channel message for message ${message.id} as message ${fireboardMessage.id}`);
-		}
-		finally {
+		} finally {
 			// Update the database entry
 			await updateEntry(message.id, { channelId: message.channel.id, validReactionCount: totalValidReactionCount, fireboardMessageId: fireboardMessage.id });
 			console.log(`Updated fireboard entry for message ${message.id} as message ${fireboardMessage.id}.`);
@@ -186,8 +181,8 @@ module.exports.Fireboard = class {
 			const fireboardMessage = await this.fireboardChannel.messages.fetch(entry.fireboardMessageId);
 			await fireboardMessage.delete();
 			console.log(`Deleted fireboard message ${entry.fireboardMessageId}`);
-		}
-		catch (error) {
+		// eslint-disable-next-line no-unused-vars
+		} catch (error) {
 			console.log(`Fireboard message ${entry.fireboardMessageId} not found for deletion (may already be deleted)`);
 		}
 
