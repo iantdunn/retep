@@ -1,7 +1,7 @@
 module.exports = {
-    "discordToken": "",
-    "discordClientId": "",
-    "discordGuildId": "",
+    "discordToken": "YOUR_BOT_TOKEN",
+    "discordClientId": "YOUR_APPLICATION_CLIENT_ID",
+    "discordGuildId": "YOUR_GUILD_ID",
     "welcomeSettings": {
         "channelId": "1305933207551868981",
         "welcomeEnabled": true,
